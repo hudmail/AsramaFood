@@ -1,0 +1,15 @@
+services:
+  asrama-food:
+    build: .
+    image: asrama-food-simple:latest
+    container_name: asrama-food
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      - PORT=3000
+      - SESSION_SECRET=${SESSION_SECRET:-ganti-secret-ini-di-env}
+      - ADMIN_DEFAULT_PASSWORD=${ADMIN_DEFAULT_PASSWORD:-ganti-password-ini}
+      - DATA_DIR=/app/data
+    volumes:
+      - ./data:/app/data

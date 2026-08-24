@@ -1,0 +1,10 @@
+node_modules
+data
+.env
+.env.example
+*.log
+.git
+.gitignore
+README.md
+INTEGRATION_NOTES.md
+example_code_theme
