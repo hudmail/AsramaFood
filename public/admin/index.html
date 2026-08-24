@@ -1,0 +1,47 @@
+<!DOCTYPE html><html lang="id"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Pesanan - Admin AsramaFood</title><link rel="icon" type="image/svg+xml" href="/favicon.svg"><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap" rel="stylesheet"><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"><link rel="stylesheet" href="/css/style.css"></head>
+<body class="admin-body">
+    <header class="admin-header">
+        <div class="header-inner">
+            <div style="display: flex; align-items: center; gap: 1rem;">
+                <button class="icon-btn mobile-menu-btn" id="toggle-sidebar"><i class="fa-solid fa-bars"></i></button>
+                <a class="admin-brand" href="/admin/index.html"><i class="fa-solid fa-utensils"></i> AdminPanel</a>
+            </div>
+            <div class="admin-header-actions">
+                <a class="icon-btn" href="/" title="Halaman guest"><i class="fa-solid fa-store"></i></a>
+                <button class="icon-btn" id="theme-toggle"><i class="fa-solid fa-moon"></i></button>
+                <button class="logout-btn" onclick="logout()"><i class="fa-solid fa-arrow-right-from-bracket"></i> <span class="desktop-only" style="margin-left: 0.4rem;">Keluar</span></button>
+            </div>
+        </div>
+    </header>
+    <div class="admin-layout">
+        <aside class="sidebar" id="sidebar">
+            <nav>
+                <a class="nav-item active" href="/admin/index.html"><i class="fa-solid fa-receipt"></i> Pesanan</a>
+                <a class="nav-item" href="/admin/menu.html"><i class="fa-solid fa-bowl-food"></i> Kelola Menu</a>
+                <a class="nav-item" href="/admin/settings.html"><i class="fa-solid fa-gear"></i> Pengaturan</a>
+            </nav>
+        </aside>
+        <main class="main-content">
+            <div class="page-header"><h2>Pesanan Hari Ini</h2><p>Pantau pesanan pelanggan dan konfirmasi pembayaran asrama.</p></div>
+            <div class="stat-grid">
+                <div class="stat-card"><div class="stat-label">Pesanan Hari Ini</div><div class="stat-value" id="statOrders">-</div></div>
+                <div class="stat-card"><div class="stat-label">Omzet Hari Ini</div><div class="stat-value" id="statRevenue">-</div></div>
+                <div class="stat-card"><div class="stat-label">Profit Hari Ini</div><div class="stat-value" id="statProfit" style="color:var(--primary);">-</div></div>
+                <div class="stat-card"><div class="stat-label">Menunggu</div><div class="stat-value" id="statPending">-</div></div>
+                <div class="stat-card"><div class="stat-label">Cek Pembayaran</div><div class="stat-value" id="statUnconfirmedPayments">-</div></div>
+                <div class="stat-card"><div class="stat-label">Stok Menipis</div><div class="stat-value" id="statLowStock">-</div></div>
+            </div>
+            <div class="panel">
+                <div class="panel-header"><h3 style="font-size: 1.1rem; margin: 0;">Daftar Pesanan Terbaru</h3><div class="filter-tabs" id="filterTabs" style="margin-bottom:0; padding-bottom:0;"></div></div>
+                <div class="table-responsive">
+                    <table class="data-table">
+                        <thead><tr><th>ID</th><th>Pemesan & Kamar</th><th>Total</th><th>Metode</th><th>Status</th><th>Aksi</th></tr></thead>
+                        <tbody id="orderList"><tr><td colspan="6" style="text-align:center;">Memuat...</td></tr></tbody>
+                    </table>
+                </div>
+            </div>
+        </main>
+    </div>
+    <div class="modal-overlay" id="proofViewOverlay" onclick="if(event.target===this) closeProofView()"><div class="modal-card"><div class="modal-header"><h3>Bukti Transfer</h3><button class="close-modal" onclick="closeProofView()"><i class="fa-solid fa-xmark"></i></button></div><img id="proofViewImg" style="max-width:100%;border-radius:12px;margin-top:1rem"></div></div>
+    <div class="modal-overlay" id="order-modal"><div class="modal-card"><div class="modal-header"><h3>Detail Pesanan <span id="detail-order-id" style="color: var(--primary);">#---</span></h3><button class="close-modal" onclick="closeOrderModal()"><i class="fa-solid fa-xmark"></i></button></div><div id="order-detail-content" style="font-size: 0.95rem; margin-bottom: 1.5rem;"></div><div style="display: flex; gap: 0.75rem; flex-wrap: wrap;" id="order-action-buttons"></div></div></div>
+<script src="/js/theme.js"></script><script>initThemeToggle('theme-toggle');const sidebar = document.getElementById('sidebar');const toggleBtn = document.getElementById('toggle-sidebar');if(toggleBtn && sidebar) {toggleBtn.addEventListener('click', () => sidebar.classList.toggle('open'));}</script><script src="/admin/js/dashboard.js"></script></body></html>

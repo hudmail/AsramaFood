@@ -1,0 +1,95 @@
+<!DOCTYPE html><html lang="id"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Pengaturan - Admin AsramaFood</title><link rel="icon" type="image/svg+xml" href="/favicon.svg"><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap" rel="stylesheet"><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"><link rel="stylesheet" href="/css/style.css"></head>
+<body class="admin-body">
+    <header class="admin-header">
+        <div class="header-inner">
+            <div style="display: flex; align-items: center; gap: 1rem;">
+                <button class="icon-btn mobile-menu-btn" id="toggle-sidebar"><i class="fa-solid fa-bars"></i></button>
+                <a class="admin-brand" href="/admin/index.html"><i class="fa-solid fa-utensils"></i> AdminPanel</a>
+            </div>
+            <div class="admin-header-actions">
+                <button class="icon-btn" id="theme-toggle"><i class="fa-solid fa-moon"></i></button>
+                <button class="logout-btn" onclick="logout()"><i class="fa-solid fa-arrow-right-from-bracket"></i> <span class="desktop-only" style="margin-left: 0.4rem;">Keluar</span></button>
+            </div>
+        </div>
+    </header>
+
+    <div class="admin-layout">
+        <aside class="sidebar" id="sidebar">
+            <nav>
+                <a class="nav-item" href="/admin/index.html"><i class="fa-solid fa-receipt"></i> Pesanan</a>
+                <a class="nav-item" href="/admin/menu.html"><i class="fa-solid fa-bowl-food"></i> Kelola Menu</a>
+                <a class="nav-item active" href="/admin/settings.html"><i class="fa-solid fa-gear"></i> Pengaturan</a>
+            </nav>
+        </aside>
+
+        <main class="main-content">
+            <div class="page-header">
+                <h2>Pengaturan Toko</h2>
+                <p>Atur status toko, ongkir, jam buka, gedung, dan QRIS guest.</p>
+            </div>
+
+            <div style="display: flex; flex-wrap: wrap; gap: 1.5rem;">
+                <div class="panel" style="margin: 0; flex: 1 1 350px; min-width: 0;">
+                    <div class="panel-header">
+                        <h3 style="font-size: 1.1rem; margin: 0;">Informasi Toko</h3>
+                    </div>
+                    <div style="padding: 1.5rem;">
+                        <div class="form-group"><label class="form-label">Nama Toko</label><input class="form-control" id="storeName"></div>
+                        <div class="form-group"><label class="form-label">Jam Buka</label><input class="form-control" id="openHours" placeholder="07:00 - 21:00"></div>
+                        <div class="form-group"><label class="form-label">Ongkos Kirim (Rp)</label><input class="form-control" type="number" id="deliveryFee"></div>
+                        <div class="form-group"><label class="form-label">Gedung Tersedia (pisahkan dengan koma)</label><input class="form-control" id="availableBuildings" placeholder="Gedung 2, Gedung 3"></div>
+                        
+                        <div class="form-group" style="display: flex; align-items: center; gap: 0.75rem; margin-top: 1rem; padding: 1rem; border: 1px solid var(--border-color); border-radius: var(--radius-sm);">
+                            <input type="checkbox" id="isOpen" style="width: 20px; height: 20px; accent-color: var(--primary);">
+                            <div>
+                                <label for="isOpen" style="margin: 0; font-size: 1rem; font-weight: 600; cursor:pointer;">Toko sedang buka</label>
+                                <div style="font-size: 0.8rem; color: var(--text-muted);">Izinkan pelanggan untuk membuat pesanan baru</div>
+                            </div>
+                        </div>
+
+                        <div class="form-group" style="display: flex; align-items: center; gap: 0.75rem; margin-top: 0.5rem; padding: 1rem; border: 1px solid var(--border-color); border-radius: var(--radius-sm);">
+                            <input type="checkbox" id="allowQris" style="width: 20px; height: 20px; accent-color: var(--primary);">
+                            <div>
+                                <label for="allowQris" style="margin: 0; font-size: 1rem; font-weight: 600; cursor:pointer;">Terima Pembayaran QRIS</label>
+                                <div style="font-size: 0.8rem; color: var(--text-muted);">Izinkan metode pembayaran via transfer/QRIS</div>
+                            </div>
+                        </div>
+
+                        <div class="form-group" style="display: flex; align-items: center; gap: 0.75rem; margin-top: 0.5rem; padding: 1rem; border: 1px solid var(--border-color); border-radius: var(--radius-sm);">
+                            <input type="checkbox" id="allowCod" style="width: 20px; height: 20px; accent-color: var(--primary);">
+                            <div>
+                                <label for="allowCod" style="margin: 0; font-size: 1rem; font-weight: 600; cursor:pointer;">Terima Pembayaran COD</label>
+                                <div style="font-size: 0.8rem; color: var(--text-muted);">Izinkan metode pembayaran Cash on Delivery (bayar di tempat)</div>
+                            </div>
+                        </div>
+
+                        <button class="btn" style="margin-top: 1.5rem; width: 100%;" onclick="saveSettings()"><i class="fa-solid fa-floppy-disk"></i> Simpan Pengaturan</button>
+                    </div>
+                </div>
+
+                <div class="panel" style="margin: 0; flex: 1 1 300px; min-width: 0;">
+                    <div class="panel-header">
+                        <h3 style="font-size: 1.1rem; margin: 0;">QRIS Pembayaran</h3>
+                    </div>
+                    <div style="padding: 1.5rem;">
+                        <p class="field-help" style="margin-bottom:1rem; color: var(--text-muted); font-size: 0.9rem;">Gambar QRIS ini tampil di halaman tracking untuk pesanan yang memilih metode pembayaran QRIS.</p>
+                        <div class="form-group"><input class="form-control" type="file" id="qrisFile" accept="image/*" onchange="previewQris(event)"></div>
+                        <div id="qrisPreviewWrap" style="display:none;margin-bottom:1.5rem; text-align: center;"><img id="qrisPreview" style="max-width:100%;max-height:300px;border:1px solid var(--border-color);border-radius:var(--radius-md);padding:8px;background:var(--bg-card)"></div>
+                        <button class="btn secondary" style="width: 100%;" onclick="saveQris()"><i class="fa-solid fa-cloud-arrow-up"></i> Simpan QRIS</button>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="/js/theme.js"></script>
+    <script>
+        initThemeToggle('theme-toggle');
+        const sidebar = document.getElementById('sidebar');
+        const toggleBtn = document.getElementById('toggle-sidebar');
+        if(toggleBtn && sidebar) {
+            toggleBtn.addEventListener('click', () => sidebar.classList.toggle('open'));
+        }
+    </script>
+    <script src="/admin/js/settings.js"></script>
+</body></html>

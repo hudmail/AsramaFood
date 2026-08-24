@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="id">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lacak Pesanan - AsramaFood</title>
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+
+<body>
+    <header class="header">
+        <div class="container header-inner"><a class="brand-logo" href="/"><i
+                    class="fa-solid fa-utensils"></i><span id="brand-name">Asrama Food</span></a>
+            <div class="header-actions"><a class="icon-btn" href="/"><i class="fa-solid fa-house"></i></a><button
+                    class="icon-btn" id="theme-toggle"><i class="fa-solid fa-moon"></i></button></div>
+        </div>
+    </header>
+    <main class="track-shell">
+        <section class="track-hero">
+            <h1><i class="fa-solid fa-clock-rotate-left"></i> Lacak Pesanan</h1>
+            <p>Masukkan kode pesanan untuk melihat status proses dan pembayaran.</p>
+            <div class="track-search">
+                <input id="codeInput" placeholder="Contoh: AF-20260824-0001">
+                <button class="btn" onclick="track()"><i class="fa-solid fa-magnifying-glass"></i> Cek Status</button>
+            </div>
+        </section>
+
+        <div class="loader" id="loadingSpinner"></div>
+        <div class="result-card" id="resultCard">
+            <!-- Content will be injected by JavaScript -->
+        </div>
+    </main>
+    <div class="overlay" id="proofOverlay">
+        <div class="sheet"><button class="sheet-close" onclick="closeProofUpload()">&times;</button>
+            <h2>Upload Bukti Transfer</h2>
+            <p class="field-help" style="margin-bottom:1rem">Unggah screenshot pembayaran QRIS. Maksimal 4MB.</p>
+            <div class="form-group"><input type="file" id="proofFile" accept="image/*" onchange="previewProof(event)">
+            </div>
+            <div id="proofPreviewWrap" style="display:none;margin-bottom:1rem"><img id="proofPreview"
+                    style="max-width:100%;border:1px solid var(--border-color);border-radius:12px"></div><button
+                class="btn" id="uploadProofBtn" onclick="submitProof()">Kirim Bukti Transfer</button>
+        </div>
+    </div>
+    <script src="/js/theme.js"></script>
+    <script>initThemeToggle('theme-toggle');</script>
+    <script src="/js/track.js"></script>
+</body>
+
+</html>
