@@ -5,9 +5,11 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>AsramaFood - Pesan Makanan Asrama</title>
-  <meta name="description" content="Pesan makanan dan minuman favoritmu langsung ke kamar asrama. Cepat, mudah, dan praktis tanpa antre dengan AsramaFood.">
+  <meta name="description"
+    content="Pesan makanan dan minuman favoritmu langsung ke kamar asrama. Cepat, mudah, dan praktis tanpa antre dengan AsramaFood.">
   <meta property="og:title" content="AsramaFood - Pesan Makanan Asrama">
-  <meta property="og:description" content="Pesan makanan dan minuman favoritmu langsung ke kamar asrama. Cepat, mudah, dan praktis tanpa antre dengan AsramaFood.">
+  <meta property="og:description"
+    content="Pesan makanan dan minuman favoritmu langsung ke kamar asrama. Cepat, mudah, dan praktis tanpa antre dengan AsramaFood.">
   <meta property="og:type" content="website">
   <meta property="og:image" content="/img/og-image.png">
   <link rel="icon" type="image/svg+xml" href="/favicon.svg">
@@ -24,15 +26,18 @@
   <a href="#main-content" class="skip-link">Lompat ke konten utama</a>
   <header class="header">
     <div class="container header-inner">
-      <a href="/" class="brand-logo"><i aria-hidden="true" class="fa-solid fa-utensils"></i><span id="brand-name">Asrama Food</span></a>
+      <a href="/" class="brand-logo"><i aria-hidden="true" class="fa-solid fa-utensils"></i><span id="brand-name">Asrama
+          Food</span></a>
       <button class="location-badge" id="location-btn"><i aria-hidden="true" class="fa-solid fa-location-dot"></i><span
-          id="current-location-text">Gedung A • Kamar 311</span><i aria-hidden="true" class="fa-solid fa-chevron-down"></i></button>
+          id="current-location-text">Gedung A • Kamar 311</span><i aria-hidden="true"
+          class="fa-solid fa-chevron-down"></i></button>
       <div class="header-actions">
         <a class="icon-btn desktop-only" href="/track.html" aria-label="Lacak pesanan"><i
             class="fa-solid fa-clock-rotate-left"></i></a>
         <a class="icon-btn desktop-only" href="/admin/login.html" aria-label="Login admin"><i
             class="fa-solid fa-user-shield"></i></a>
-        <button class="icon-btn" id="theme-toggle" aria-label="Ganti tema"><i aria-hidden="true" class="fa-solid fa-moon"></i></button>
+        <button class="icon-btn" id="theme-toggle" aria-label="Ganti tema"><i aria-hidden="true"
+            class="fa-solid fa-moon"></i></button>
         <button class="icon-btn" id="cart-toggle-btn" aria-label="Buka keranjang"><i
             class="fa-solid fa-bag-shopping"></i><span class="cart-badge" id="cart-badge-count">0</span></button>
       </div>
@@ -48,9 +53,11 @@
           <p class="hero-subtitle">Pilih menu, tentukan antar atau ambil sendiri, lalu bayar dengan QRIS atau COD. Semua
             pesanan bisa dilacak dari kode pesanan.</p>
           <div class="hero-stats">
-            <div class="stat-item"><i aria-hidden="true" class="fa-solid fa-store"></i><span id="store-status-text">Memuat status
+            <div class="stat-item"><i aria-hidden="true" class="fa-solid fa-store"></i><span
+                id="store-status-text">Memuat status
                 toko...</span></div>
-            <div class="stat-item"><i aria-hidden="true" class="fa-solid fa-clock"></i><span id="open-hours-text">Jam buka -</span></div>
+            <div class="stat-item"><i aria-hidden="true" class="fa-solid fa-clock"></i><span id="open-hours-text">Jam
+                buka -</span></div>
           </div>
         </div>
         <div class="hero-side-card">
@@ -63,8 +70,8 @@
 
     <section class="search-section">
       <div class="search-container">
-        <div class="search-wrapper"><i aria-hidden="true" class="fa-solid fa-magnifying-glass"></i><input id="search-input"
-            class="search-input" placeholder="Cari menu favoritmu..."><button class="clear-search"
+        <div class="search-wrapper"><i aria-hidden="true" class="fa-solid fa-magnifying-glass"></i><input
+            id="search-input" class="search-input" placeholder="Cari menu favoritmu..."><button class="clear-search"
             id="clear-search-btn"><i aria-hidden="true" class="fa-solid fa-xmark"></i></button></div>
       </div>
       <div class="budget-filters" id="budget-filters">
@@ -77,24 +84,35 @@
 
     <section class="menu-section" id="bestseller-section" style="display:none;">
       <div class="section-header">
-        <h2 class="section-title"><i aria-hidden="true" class="fa-solid fa-trophy" style="color:var(--primary)"></i> Menu Terlaris</h2>
+        <h2 class="section-title"><i aria-hidden="true" class="fa-solid fa-trophy" style="color:var(--primary)"></i>
+          Menu Terlaris</h2>
       </div>
       <div class="food-grid" id="bestseller-grid" aria-live="polite"></div>
     </section>
 
     <section class="menu-section">
       <div class="section-header">
-        <h2 class="section-title"><i aria-hidden="true" class="fa-solid fa-fire" style="color:var(--primary)"></i> Menu Tersedia</h2>
+        <h2 class="section-title"><i aria-hidden="true" class="fa-solid fa-fire" style="color:var(--primary)"></i> Menu
+          Tersedia</h2>
       </div>
       <div class="category-scroll" id="category-pills"></div>
       <div class="food-grid" id="food-grid" aria-live="polite"></div>
     </section>
+
+    <div
+      style="text-align: center; padding: 2rem 1rem 6rem; color: var(--text-muted, #6b7280); font-size: 0.875rem; opacity: 0.7;">
+      <p class="text-center text-xs text-gray-400 mt-6 font-medium">
+        by <a href="https://instagram.com/mail.huda" target="_blank"
+          class="hover:text-primary transition-colors">HudMail</a> (@mail.huda)
+      </p>
+    </div>
   </main>
 
   <div class="drawer-overlay" id="cart-drawer-overlay">
     <aside class="cart-drawer">
       <div class="drawer-header">
-        <h3 class="drawer-title"><i aria-hidden="true" class="fa-solid fa-basket-shopping" style="color:var(--primary)"></i> Pesanan Kamu
+        <h3 class="drawer-title"><i aria-hidden="true" class="fa-solid fa-basket-shopping"
+            style="color:var(--primary)"></i> Pesanan Kamu
         </h3><button class="close-btn" id="close-cart-btn"><i aria-hidden="true" class="fa-solid fa-xmark"></i></button>
       </div>
       <div class="drawer-body" id="cart-items-container"></div>
@@ -135,8 +153,8 @@
             class="form-control" placeholder="08xxxxxxxxxx" required></div>
         <div class="form-group"><label class="form-label">Metode Pengambilan</label>
           <div class="radio-group pickup-group">
-            <label class="radio-box active anim-target"><input type="radio" name="pickup" value="antar" checked hidden><i
-                class="fa-solid fa-motorcycle"></i><span>Antar ke kamar</span></label>
+            <label class="radio-box active anim-target"><input type="radio" name="pickup" value="antar" checked
+                hidden><i class="fa-solid fa-motorcycle"></i><span>Antar ke kamar</span></label>
             <label class="radio-box anim-target"><input type="radio" name="pickup" value="ambil" hidden><i
                 class="fa-solid fa-person-walking"></i><span>Ambil sendiri</span></label>
           </div>
@@ -165,7 +183,8 @@
           <div class="summary-row"><span>Ongkir</span><span id="checkout-shipping">Rp 0</span></div>
           <div class="summary-row total"><span>Total</span><span id="checkout-total">Rp 0</span></div>
         </div>
-        <button type="submit" class="checkout-btn"><i aria-hidden="true" class="fa-solid fa-check"></i> Buat Pesanan</button>
+        <button type="submit" class="checkout-btn"><i aria-hidden="true" class="fa-solid fa-check"></i> Buat
+          Pesanan</button>
       </form>
     </div>
   </div>
@@ -176,9 +195,11 @@
         class="fa-solid fa-magnifying-glass"></i><span>Cari</span></a>
     <a href="#" class="nav-item" id="nav-cart-trigger"><i
         class="fa-solid fa-bag-shopping"></i><span>Keranjang</span></a>
-    <a href="/track.html" class="nav-item"><i aria-hidden="true" class="fa-solid fa-clock-rotate-left"></i><span>Lacak</span></a>
+    <a href="/track.html" class="nav-item"><i aria-hidden="true"
+        class="fa-solid fa-clock-rotate-left"></i><span>Lacak</span></a>
   </nav>
-  <div class="toast" id="toast-message"><i aria-hidden="true" class="fa-solid fa-circle-check"></i><span id="toast-text">Berhasil</span>
+  <div class="toast" id="toast-message"><i aria-hidden="true" class="fa-solid fa-circle-check"></i><span
+      id="toast-text">Berhasil</span>
   </div>
   <script src="/js/theme.js"></script>
   <script>initThemeToggle('theme-toggle');</script>
