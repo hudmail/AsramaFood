@@ -5,9 +5,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Lacak Pesanan - AsramaFood</title>
-    <meta name="description" content="Lacak status pesanan AsramaFood kamu secara real-time. Ketahui kapan pesanan disiapkan dan diantar.">
+    <meta name="description"
+        content="Lacak status pesanan AsramaFood kamu secara real-time. Ketahui kapan pesanan disiapkan dan diantar.">
     <meta property="og:title" content="Lacak Pesanan - AsramaFood">
-    <meta property="og:description" content="Lacak status pesanan AsramaFood kamu secara real-time. Ketahui kapan pesanan disiapkan dan diantar.">
+    <meta property="og:description"
+        content="Lacak status pesanan AsramaFood kamu secara real-time. Ketahui kapan pesanan disiapkan dan diantar.">
     <meta property="og:type" content="website">
     <meta property="og:image" content="/img/og-image.png">
     <link rel="icon" type="image/svg+xml" href="/favicon.svg">
@@ -22,10 +24,11 @@
 
 <body>
     <header class="header">
-        <div class="container header-inner"><a class="brand-logo" href="/"><i
-                    class="fa-solid fa-utensils"></i><span id="brand-name">Asrama Food</span></a>
-            <div class="header-actions"><a class="icon-btn" href="/"><i aria-hidden="true" class="fa-solid fa-house"></i></a><button
-                    class="icon-btn" id="theme-toggle"><i aria-hidden="true" class="fa-solid fa-moon"></i></button></div>
+        <div class="container header-inner"><a class="brand-logo" href="/"><i class="fa-solid fa-utensils"></i><span
+                    id="brand-name">Asrama Food</span></a>
+            <div class="header-actions"><a class="icon-btn" href="/"><i aria-hidden="true"
+                        class="fa-solid fa-house"></i></a><button class="icon-btn" id="theme-toggle"><i
+                        aria-hidden="true" class="fa-solid fa-moon"></i></button></div>
         </div>
     </header>
     <main class="track-shell">
@@ -34,13 +37,22 @@
             <p>Masukkan kode pesanan untuk melihat status proses dan pembayaran.</p>
             <div class="track-search">
                 <input id="codeInput" placeholder="Contoh: AF-20260824-0001">
-                <button class="btn" onclick="track()"><i aria-hidden="true" class="fa-solid fa-magnifying-glass"></i> Cek Status</button>
+                <button class="btn" onclick="track()"><i aria-hidden="true" class="fa-solid fa-magnifying-glass"></i>
+                    Cek Status</button>
             </div>
         </section>
 
         <div class="loader" id="loadingSpinner"></div>
         <div class="result-card" id="resultCard">
             <!-- Content will be injected by JavaScript -->
+        </div>
+
+        <div
+            style="text-align: center; padding: 2rem 1rem; color: var(--text-muted, #6b7280); font-size: 0.875rem; opacity: 0.7;">
+            <p class="text-center text-xs text-gray-400 mt-6 font-medium">
+                by <a href="https://instagram.com/mail.huda" target="_blank"
+                    class="hover:text-primary transition-colors">HudMail</a> (@mail.huda)
+            </p>
         </div>
     </main>
     <div class="overlay" id="proofOverlay">
