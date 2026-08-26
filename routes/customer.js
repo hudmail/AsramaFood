@@ -1,5 +1,4 @@
 const express = require('express');
-<<<<<<< HEAD
 const rateLimit = require('express-rate-limit');
 const multer = require('multer');
 const path = require('path');
@@ -51,12 +50,6 @@ const orderRateLimit = rateLimit({
   legacyHeaders: false,
 });
 
-=======
-const { db, getSetting } = require('../db');
-
-const router = express.Router();
-
->>>>>>> 9055762d63d710105a6297457545a0cdb76182ce
 function todayCode() {
   const d = new Date();
   const y = d.getFullYear();
@@ -110,11 +103,7 @@ router.get('/categories', (req, res) => {
 router.get('/menu', (req, res) => {
   const { search = '', category = '' } = req.query;
   let sql = `
-<<<<<<< HEAD
     SELECT m.id, m.name, m.description, m.price, m.discount_price, m.is_discount, m.stock, m.is_available, m.image_emoji, m.image, m.sold_count,
-=======
-    SELECT m.id, m.name, m.description, m.price, m.stock, m.is_available, m.image_emoji, m.image,
->>>>>>> 9055762d63d710105a6297457545a0cdb76182ce
            c.id AS category_id, c.name AS category_name
     FROM menu_items m
     LEFT JOIN categories c ON c.id = m.category_id
@@ -134,7 +123,6 @@ router.get('/menu', (req, res) => {
   res.json(rows);
 });
 
-<<<<<<< HEAD
 // Menu terlaris: diurutkan dari jumlah terjual (sold_count) terbanyak.
 // sold_count bertambah tiap kali menu itu berhasil dipesan (lihat POST /orders).
 router.get('/menu/terlaris', (req, res) => {
@@ -154,9 +142,6 @@ router.get('/menu/terlaris', (req, res) => {
 });
 
 router.post('/orders', orderRateLimit, (req, res) => {
-=======
-router.post('/orders', (req, res) => {
->>>>>>> 9055762d63d710105a6297457545a0cdb76182ce
   const { customer_name, room, whatsapp, note, method, payment_method = 'qris', items } = req.body || {};
 
   if (!customer_name || !room || !method || !whatsapp || !Array.isArray(items) || items.length === 0) {
@@ -192,17 +177,11 @@ router.post('/orders', (req, res) => {
       if (!qty || qty < 1) throw new Error(`Jumlah tidak valid untuk ${menuItem.name}`);
       if (menuItem.stock < qty) throw new Error(`Stok ${menuItem.name} tidak cukup (sisa ${menuItem.stock})`);
 
-<<<<<<< HEAD
       // Kalau menu sedang diskon, pelanggan dikenai harga diskon, bukan harga normal.
       const effectivePrice = menuItem.is_discount && menuItem.discount_price ? menuItem.discount_price : menuItem.price;
       const lineSubtotal = effectivePrice * qty;
       subtotal += lineSubtotal;
       resolvedItems.push({ menuItem, qty, lineSubtotal, effectivePrice });
-=======
-      const lineSubtotal = menuItem.price * qty;
-      subtotal += lineSubtotal;
-      resolvedItems.push({ menuItem, qty, lineSubtotal });
->>>>>>> 9055762d63d710105a6297457545a0cdb76182ce
     }
 
     const deliveryFee = method === 'antar' ? parseInt(getSetting('delivery_fee', '0'), 10) : 0;
@@ -214,11 +193,7 @@ router.post('/orders', (req, res) => {
         `INSERT INTO orders (order_code, customer_name, room, whatsapp, note, method, payment_method, delivery_fee, subtotal, total, status, payment_status)
          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', ?)`
       )
-<<<<<<< HEAD
       .run(orderCode, customer_name, room, whatsapp || '', note || '', method, payment_method, deliveryFee, subtotal, total, 'menunggu_pembayaran');
-=======
-      .run(orderCode, customer_name, room, whatsapp || '', note || '', method, payment_method, deliveryFee, subtotal, total, payment_method === 'cod' ? 'menunggu_pembayaran' : 'menunggu_pembayaran');
->>>>>>> 9055762d63d710105a6297457545a0cdb76182ce
 
     const orderId = orderResult.lastInsertRowid;
     const insertItem = db.prepare(`
@@ -226,19 +201,12 @@ router.post('/orders', (req, res) => {
       VALUES (?, ?, ?, ?, ?, ?, ?)
     `);
     const decrementStock = db.prepare('UPDATE menu_items SET stock = stock - ? WHERE id = ?');
-<<<<<<< HEAD
     const incrementSold = db.prepare('UPDATE menu_items SET sold_count = sold_count + ? WHERE id = ?');
 
     for (const { menuItem, qty, lineSubtotal, effectivePrice } of resolvedItems) {
       insertItem.run(orderId, menuItem.id, menuItem.name, effectivePrice, menuItem.cost_price || 0, qty, lineSubtotal);
       decrementStock.run(qty, menuItem.id);
       incrementSold.run(qty, menuItem.id);
-=======
-
-    for (const { menuItem, qty, lineSubtotal } of resolvedItems) {
-      insertItem.run(orderId, menuItem.id, menuItem.name, menuItem.price, menuItem.cost_price || 0, qty, lineSubtotal);
-      decrementStock.run(qty, menuItem.id);
->>>>>>> 9055762d63d710105a6297457545a0cdb76182ce
     }
 
     return { orderId, orderCode, total };
@@ -259,23 +227,9 @@ router.get('/orders/:code', (req, res) => {
   res.json({ ...order, items });
 });
 
-<<<<<<< HEAD
 router.post('/orders/:code/bukti-bayar', uploadOne('proof_image'), (req, res) => {
   const { code } = req.params;
   const order = db.prepare('SELECT * FROM orders WHERE order_code = ?').get(code);
-=======
-router.post('/orders/:code/bukti-bayar', (req, res) => {
-  const { proof_image } = req.body || {};
-  if (!proof_image || !proof_image.startsWith('data:image/')) {
-    return res.status(400).json({ error: 'Bukti transfer harus berupa gambar' });
-  }
-  // batas kasar ~4MB base64 supaya tidak membengkakkan database
-  if (proof_image.length > 5.5 * 1024 * 1024) {
-    return res.status(400).json({ error: 'Ukuran gambar terlalu besar, coba kompres dulu' });
-  }
-
-  const order = db.prepare('SELECT * FROM orders WHERE order_code = ?').get(req.params.code);
->>>>>>> 9055762d63d710105a6297457545a0cdb76182ce
   if (!order) return res.status(404).json({ error: 'Pesanan tidak ditemukan' });
   if (order.status === 'dibatalkan') {
     return res.status(400).json({ error: 'Pesanan ini sudah dibatalkan' });
@@ -284,7 +238,6 @@ router.post('/orders/:code/bukti-bayar', (req, res) => {
     return res.status(400).json({ error: 'Pesanan ini sudah dikonfirmasi terbayar' });
   }
 
-<<<<<<< HEAD
   const proof_image = req.file ? `/uploads/${req.file.filename}` : req.body.proof_image;
   if (!proof_image) return res.status(400).json({ error: 'Bukti transfer wajib disertakan' });
 
@@ -293,11 +246,6 @@ router.post('/orders/:code/bukti-bayar', (req, res) => {
   }
 
   db.prepare(`UPDATE orders SET payment_proof = ?, payment_status = 'menunggu_konfirmasi', updated_at = datetime('now') WHERE id = ?`).run(proof_image, order.id);
-=======
-  db.prepare(
-    `UPDATE orders SET payment_proof = ?, payment_status = 'menunggu_konfirmasi', updated_at = datetime('now') WHERE id = ?`
-  ).run(proof_image, order.id);
->>>>>>> 9055762d63d710105a6297457545a0cdb76182ce
 
   res.json({ ok: true });
 });

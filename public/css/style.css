@@ -248,7 +248,6 @@
         }
 
         /* Hero Section */
-<<<<<<< HEAD
         .empty-state.compact {
             padding: 1.5rem 1rem;
         }
@@ -272,10 +271,6 @@
             padding-bottom: 0 !important;
             border-width: 0 !important;
             transform: scaleY(0.9) !important;
-=======
-        .hero-section {
-            padding: 1.75rem 0 1rem 0;
->>>>>>> 9055762d63d710105a6297457545a0cdb76182ce
         }
 
         .hero-card {
@@ -1302,7 +1297,6 @@ textarea { font-family: inherit; resize: vertical; }
 
 .loader { display: none; border: 3px solid var(--border-color); border-top: 3px solid var(--primary); border-radius: 50%; width: 24px; height: 24px; animation: spin 1s linear infinite; margin: 2rem auto; }
 @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-<<<<<<< HEAD
 
 /* Smooth UI Transitions */
 .anim-target {
@@ -1324,5 +1318,3 @@ textarea { font-family: inherit; resize: vertical; }
     border-width: 0 !important;
     transform: scaleY(0.9) !important;
 }
-=======
->>>>>>> 9055762d63d710105a6297457545a0cdb76182ce

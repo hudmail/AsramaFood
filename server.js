@@ -2,11 +2,8 @@ require('dotenv').config();
 const path = require('path');
 const express = require('express');
 const cookieSession = require('cookie-session');
-<<<<<<< HEAD
 const helmet = require('helmet');
 const compression = require('compression');
-=======
->>>>>>> 9055762d63d710105a6297457545a0cdb76182ce
 
 require('./db'); // init & auto-seed database
 
@@ -16,7 +13,6 @@ const adminRoutes = require('./routes/admin');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-<<<<<<< HEAD
 // Security & Performance
 // CSP diaktifkan dengan daftar sumber eksternal yang benar-benar dipakai
 // (Google Fonts + Font Awesome via cdnjs). 'unsafe-inline' untuk script/style
@@ -48,9 +44,6 @@ app.use(
 app.use(compression());
 
 app.use(express.json({ limit: '1mb' }));
-=======
-app.use(express.json({ limit: '6mb' }));
->>>>>>> 9055762d63d710105a6297457545a0cdb76182ce
 app.use(
   cookieSession({
     name: 'af_session',
@@ -61,12 +54,8 @@ app.use(
   })
 );
 
-<<<<<<< HEAD
 // Cache static assets for 1 day
 app.use(express.static(path.join(__dirname, 'public'), { maxAge: '1d' }));
-=======
-app.use(express.static(path.join(__dirname, 'public')));
->>>>>>> 9055762d63d710105a6297457545a0cdb76182ce
 
 app.use('/api', customerRoutes);
 app.use('/api/admin', adminRoutes);

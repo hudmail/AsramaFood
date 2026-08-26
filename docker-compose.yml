@@ -13,7 +13,4 @@ services:
       - DATA_DIR=/app/data
     volumes:
       - ./data:/app/data
-<<<<<<< HEAD
       - ./public/uploads:/app/public/uploads
-=======
->>>>>>> 9055762d63d710105a6297457545a0cdb76182ce

@@ -12,7 +12,6 @@
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",
-<<<<<<< HEAD
     "compression": "^1.8.1",
     "cookie-session": "^2.1.0",
     "dotenv": "^16.4.5",
@@ -22,10 +21,5 @@
     "helmet": "^8.3.0",
     "multer": "^2.2.0",
     "pdfkit": "^0.20.1"
-=======
-    "cookie-session": "^2.1.0",
-    "dotenv": "^16.4.5",
-    "express": "^4.19.2"
->>>>>>> 9055762d63d710105a6297457545a0cdb76182ce
   }
 }

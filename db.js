@@ -117,7 +117,6 @@ if (!menuColumns.includes('image')) {
 if (!menuColumns.includes('cost_price')) {
   db.exec(`ALTER TABLE menu_items ADD COLUMN cost_price INTEGER DEFAULT 0`);
 }
-<<<<<<< HEAD
 if (!menuColumns.includes('discount_price')) {
   db.exec(`ALTER TABLE menu_items ADD COLUMN discount_price INTEGER`);
 }
@@ -127,8 +126,6 @@ if (!menuColumns.includes('is_discount')) {
 if (!menuColumns.includes('sold_count')) {
   db.exec(`ALTER TABLE menu_items ADD COLUMN sold_count INTEGER NOT NULL DEFAULT 0`);
 }
-=======
->>>>>>> 9055762d63d710105a6297457545a0cdb76182ce
 const orderItemColumns = db.prepare("PRAGMA table_info(order_items)").all().map((c) => c.name);
 if (!orderItemColumns.includes('cost_snapshot')) {
   db.exec(`ALTER TABLE order_items ADD COLUMN cost_snapshot INTEGER NOT NULL DEFAULT 0`);
