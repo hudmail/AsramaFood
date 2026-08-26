@@ -46,6 +46,7 @@ function previewQris(event) {
 }
 
 async function saveQris() {
+<<<<<<< HEAD
   const fileInput = document.getElementById('qrisFile');
   const formData = new FormData();
 
@@ -61,6 +62,16 @@ async function saveQris() {
   const res = await fetch('/api/admin/settings', {
     method: 'PUT',
     body: formData,
+=======
+  if (!pendingQrisDataUri) {
+    alert('Pilih gambar QRIS dulu');
+    return;
+  }
+  const res = await fetch('/api/admin/settings', {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ qris_image: pendingQrisDataUri }),
+>>>>>>> 9055762d63d710105a6297457545a0cdb76182ce
   });
   if (res.ok) {
     alert('QRIS tersimpan');

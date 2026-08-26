@@ -3,6 +3,7 @@
     <header class="admin-header">
         <div class="header-inner">
             <div style="display: flex; align-items: center; gap: 1rem;">
+<<<<<<< HEAD
                 <button class="icon-btn mobile-menu-btn" id="toggle-sidebar"><i aria-hidden="true" class="fa-solid fa-bars"></i></button>
                 <a class="admin-brand" href="/admin/index.html"><i aria-hidden="true" class="fa-solid fa-utensils"></i> AdminPanel</a>
             </div>
@@ -10,16 +11,31 @@
                 <a class="icon-btn" href="/" title="Halaman guest"><i aria-hidden="true" class="fa-solid fa-store"></i></a>
                 <button class="icon-btn" id="theme-toggle"><i aria-hidden="true" class="fa-solid fa-moon"></i></button>
                 <button class="logout-btn" onclick="logout()"><i aria-hidden="true" class="fa-solid fa-arrow-right-from-bracket"></i> <span class="desktop-only" style="margin-left: 0.4rem;">Keluar</span></button>
+=======
+                <button class="icon-btn mobile-menu-btn" id="toggle-sidebar"><i class="fa-solid fa-bars"></i></button>
+                <a class="admin-brand" href="/admin/index.html"><i class="fa-solid fa-utensils"></i> AdminPanel</a>
+            </div>
+            <div class="admin-header-actions">
+                <a class="icon-btn" href="/" title="Halaman guest"><i class="fa-solid fa-store"></i></a>
+                <button class="icon-btn" id="theme-toggle"><i class="fa-solid fa-moon"></i></button>
+                <button class="logout-btn" onclick="logout()"><i class="fa-solid fa-arrow-right-from-bracket"></i> <span class="desktop-only" style="margin-left: 0.4rem;">Keluar</span></button>
+>>>>>>> 9055762d63d710105a6297457545a0cdb76182ce
             </div>
         </div>
     </header>
     <div class="admin-layout">
         <aside class="sidebar" id="sidebar">
             <nav>
+<<<<<<< HEAD
                 <a class="nav-item active" href="/admin/index.html"><i aria-hidden="true" class="fa-solid fa-receipt"></i> Pesanan</a>
                 <a class="nav-item" href="/admin/menu.html"><i aria-hidden="true" class="fa-solid fa-bowl-food"></i> Kelola Menu</a>
                 <a class="nav-item" href="/admin/reports.html"><i aria-hidden="true" class="fa-solid fa-file-excel"></i> Laporan</a>
                 <a class="nav-item" href="/admin/settings.html"><i aria-hidden="true" class="fa-solid fa-gear"></i> Pengaturan</a>
+=======
+                <a class="nav-item active" href="/admin/index.html"><i class="fa-solid fa-receipt"></i> Pesanan</a>
+                <a class="nav-item" href="/admin/menu.html"><i class="fa-solid fa-bowl-food"></i> Kelola Menu</a>
+                <a class="nav-item" href="/admin/settings.html"><i class="fa-solid fa-gear"></i> Pengaturan</a>
+>>>>>>> 9055762d63d710105a6297457545a0cdb76182ce
             </nav>
         </aside>
         <main class="main-content">
@@ -43,6 +59,11 @@
             </div>
         </main>
     </div>
+<<<<<<< HEAD
     <div class="modal-overlay" id="proofViewOverlay" onclick="if(event.target===this) closeProofView()"><div class="modal-card"><div class="modal-header"><h3>Bukti Transfer</h3><button class="close-modal" onclick="closeProofView()"><i aria-hidden="true" class="fa-solid fa-xmark"></i></button></div><img id="proofViewImg" style="max-width:100%;border-radius:12px;margin-top:1rem"></div></div>
     <div class="modal-overlay" id="order-modal"><div class="modal-card"><div class="modal-header"><h3>Detail Pesanan <span id="detail-order-id" style="color: var(--primary);">#---</span></h3><button class="close-modal" onclick="closeOrderModal()"><i aria-hidden="true" class="fa-solid fa-xmark"></i></button></div><div id="order-detail-content" style="font-size: 0.95rem; margin-bottom: 1.5rem;"></div><div style="display: flex; gap: 0.75rem; flex-wrap: wrap;" id="order-action-buttons"></div></div></div>
+=======
+    <div class="modal-overlay" id="proofViewOverlay" onclick="if(event.target===this) closeProofView()"><div class="modal-card"><div class="modal-header"><h3>Bukti Transfer</h3><button class="close-modal" onclick="closeProofView()"><i class="fa-solid fa-xmark"></i></button></div><img id="proofViewImg" style="max-width:100%;border-radius:12px;margin-top:1rem"></div></div>
+    <div class="modal-overlay" id="order-modal"><div class="modal-card"><div class="modal-header"><h3>Detail Pesanan <span id="detail-order-id" style="color: var(--primary);">#---</span></h3><button class="close-modal" onclick="closeOrderModal()"><i class="fa-solid fa-xmark"></i></button></div><div id="order-detail-content" style="font-size: 0.95rem; margin-bottom: 1.5rem;"></div><div style="display: flex; gap: 0.75rem; flex-wrap: wrap;" id="order-action-buttons"></div></div></div>
+>>>>>>> 9055762d63d710105a6297457545a0cdb76182ce
 <script src="/js/theme.js"></script><script>initThemeToggle('theme-toggle');const sidebar = document.getElementById('sidebar');const toggleBtn = document.getElementById('toggle-sidebar');if(toggleBtn && sidebar) {toggleBtn.addEventListener('click', () => sidebar.classList.toggle('open'));}</script><script src="/admin/js/dashboard.js"></script></body></html>

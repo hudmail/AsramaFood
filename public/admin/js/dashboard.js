@@ -17,7 +17,10 @@ const NEXT_STATUS = {
   pending: 'diproses',
   diproses: 'siap',
   siap: null, // depends on method, resolved at render time
+<<<<<<< HEAD
   diantar: 'selesai',
+=======
+>>>>>>> 9055762d63d710105a6297457545a0cdb76182ce
 };
 
 let activeFilter = '';
@@ -118,7 +121,11 @@ function renderOrders(orders) {
         </td>
         <td><span class="badge ${statusPillClass}">${STATUS_LABEL[o.status]}</span></td>
         <td>
+<<<<<<< HEAD
             <button class="btn-icon-small" onclick="viewOrder(${o.id})" title="Lihat Detail"><i aria-hidden="true" class="fa-solid fa-eye"></i></button>
+=======
+            <button class="btn-icon-small" onclick="viewOrder(${o.id})" title="Lihat Detail"><i class="fa-solid fa-eye"></i></button>
+>>>>>>> 9055762d63d710105a6297457545a0cdb76182ce
         </td>
       </tr>`;
     })
@@ -171,6 +178,7 @@ async function viewOrder(id) {
 
   let paymentActions = '';
   if (o.payment_method === 'cod' && o.payment_status === 'menunggu_pembayaran') {
+<<<<<<< HEAD
     paymentActions = `<button class="btn" style="width:auto; font-size:0.85rem; background:var(--primary-light); color:var(--text-title)" onclick="updatePaymentStatus(${o.id}, 'dibayar')"><i aria-hidden="true" class="fa-solid fa-money-bill"></i> Tandai COD Dibayar</button>`;
   } else if (o.payment_status === 'menunggu_konfirmasi') {
     paymentActions = `
@@ -182,6 +190,19 @@ async function viewOrder(id) {
     paymentActions = `<button class="btn" style="width:auto; font-size:0.85rem; background:var(--success)" onclick="updatePaymentStatus(${o.id}, 'dibayar')"><i aria-hidden="true" class="fa-solid fa-check"></i> Tandai Sudah Bayar</button>`;
   } else if (o.payment_status === 'dibayar' && o.payment_proof) {
     paymentActions = `<button class="btn secondary" style="width:auto; font-size:0.85rem;" onclick="viewProof(${o.id})"><i aria-hidden="true" class="fa-solid fa-receipt"></i> Lihat Bukti</button>`;
+=======
+    paymentActions = `<button class="btn" style="width:auto; font-size:0.85rem; background:var(--primary-light); color:var(--text-title)" onclick="updatePaymentStatus(${o.id}, 'dibayar')"><i class="fa-solid fa-money-bill"></i> Tandai COD Dibayar</button>`;
+  } else if (o.payment_status === 'menunggu_konfirmasi') {
+    paymentActions = `
+      ${o.payment_proof ? `<button class="btn secondary" style="width:auto; font-size:0.85rem;" onclick="viewProof(${o.id})"><i class="fa-solid fa-receipt"></i> Lihat Bukti</button>` : ''}
+      <button class="btn" style="width:auto; font-size:0.85rem; background:var(--success)" onclick="updatePaymentStatus(${o.id}, 'dibayar')"><i class="fa-solid fa-check"></i> Konfirmasi Bayar</button>
+      <button class="btn danger" style="width:auto; font-size:0.85rem;" onclick="updatePaymentStatus(${o.id}, 'ditolak')"><i class="fa-solid fa-xmark"></i> Tolak Bukti</button>
+    `;
+  } else if (o.payment_status === 'menunggu_pembayaran') {
+    paymentActions = `<button class="btn" style="width:auto; font-size:0.85rem; background:var(--success)" onclick="updatePaymentStatus(${o.id}, 'dibayar')"><i class="fa-solid fa-check"></i> Tandai Sudah Bayar</button>`;
+  } else if (o.payment_status === 'dibayar' && o.payment_proof) {
+    paymentActions = `<button class="btn secondary" style="width:auto; font-size:0.85rem;" onclick="viewProof(${o.id})"><i class="fa-solid fa-receipt"></i> Lihat Bukti</button>`;
+>>>>>>> 9055762d63d710105a6297457545a0cdb76182ce
   }
 
   const actionBtns = document.getElementById('order-action-buttons');

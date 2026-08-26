@@ -6,4 +6,8 @@ data
 .git
 .gitignore
 README.md
+<<<<<<< HEAD
+=======
+INTEGRATION_NOTES.md
+>>>>>>> 9055762d63d710105a6297457545a0cdb76182ce
 example_code_theme

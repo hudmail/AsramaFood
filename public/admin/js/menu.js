@@ -18,7 +18,12 @@ async function requireLogin() {
     return false;
   }
   return true;
+<<<<<<< HEAD
 }function logout() {
+=======
+}
+function logout() {
+>>>>>>> 9055762d63d710105a6297457545a0cdb76182ce
   fetch('/api/admin/logout', { method: 'POST' }).then(() => (window.location.href = '/admin/login.html'));
 }
 
@@ -41,6 +46,7 @@ function renderCategoryChips() {
   categories.forEach((c) => {
     const chip = document.createElement('div');
     chip.className = 'filter-tab' + (filterCategory === c.id ? ' active' : '');
+<<<<<<< HEAD
     chip.style.display = 'flex';
     chip.style.alignItems = 'center';
     chip.style.gap = '0.4rem';
@@ -68,10 +74,15 @@ function renderCategoryChips() {
 
     chip.appendChild(textSpan);
     chip.appendChild(delBtn);
+=======
+    chip.textContent = c.name;
+    chip.onclick = () => { filterCategory = c.id; renderCategoryChips(); renderTable(); };
+>>>>>>> 9055762d63d710105a6297457545a0cdb76182ce
     host.appendChild(chip);
   });
 }
 
+<<<<<<< HEAD
 async function deleteCategory(id) {
   const res = await fetch('/api/admin/categories/' + id, { method: 'DELETE' });
   if (res.ok) {
@@ -92,6 +103,12 @@ async function addCategory() {
     input.focus();
     return;
   }
+=======
+async function addCategory() {
+  const input = document.getElementById('newCategoryInput');
+  const name = input.value.trim();
+  if (!name) return;
+>>>>>>> 9055762d63d710105a6297457545a0cdb76182ce
   const res = await fetch('/api/admin/categories', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -101,7 +118,11 @@ async function addCategory() {
     input.value = '';
     await loadCategories();
   } else {
+<<<<<<< HEAD
     const data = await res.json().catch(() => ({}));
+=======
+    const data = await res.json();
+>>>>>>> 9055762d63d710105a6297457545a0cdb76182ce
     alert(data.error || 'Gagal menambah kategori');
   }
 }
@@ -121,7 +142,11 @@ function renderTable() {
   }
   host.innerHTML = `
     <table class="data-table">
+<<<<<<< HEAD
       <thead><tr><th></th><th>Nama</th><th>Kategori</th><th>Modal</th><th>Jual</th><th>Terjual</th><th>Stok</th><th>Status</th><th>Aksi</th></tr></thead>
+=======
+      <thead><tr><th></th><th>Nama</th><th>Kategori</th><th>Modal</th><th>Jual</th><th>Stok</th><th>Status</th><th>Aksi</th></tr></thead>
+>>>>>>> 9055762d63d710105a6297457545a0cdb76182ce
       <tbody>
         ${filtered
           .map(
@@ -133,6 +158,7 @@ function renderTable() {
             <td style="font-weight: 600; color: var(--text-title);">${escapeHtml(m.name)}</td>
             <td><span class="badge" style="background: var(--bg-body); color: var(--text-muted); border: 1px solid var(--border-color);">${escapeHtml(m.category_name || '-')}</span></td>
             <td>${money(m.cost_price || 0)}</td>
+<<<<<<< HEAD
             <td style="font-weight: 600;">
               ${m.is_discount && m.discount_price
                 ? `<span style="text-decoration:line-through;color:var(--text-muted);font-weight:400;font-size:0.85em;">${money(m.price)}</span><br><span style="color:var(--danger);">${money(m.discount_price)}</span> <span class="badge danger" style="font-size:0.7em;">Diskon</span>`
@@ -145,6 +171,15 @@ function renderTable() {
               <div class="table-actions">
                   <button class="btn-icon-small" onclick='openEditor(${JSON.stringify(m).replace(/'/g, "&#39;")})' title="Edit"><i aria-hidden="true" class="fa-solid fa-pen"></i></button>
                   <button class="btn-icon-small" style="color: var(--danger);" onclick="deleteMenu(${m.id})" title="Hapus"><i aria-hidden="true" class="fa-solid fa-trash"></i></button>
+=======
+            <td style="font-weight: 600;">${money(m.price)}</td>
+            <td>${m.stock}</td>
+            <td>${m.is_available ? '<span class="badge success"><i class="fa-solid fa-check"></i> Tersedia</span>' : '<span class="badge danger"><i class="fa-solid fa-xmark"></i> Habis</span>'}</td>
+            <td>
+              <div class="table-actions">
+                  <button class="btn-icon-small" onclick='openEditor(${JSON.stringify(m).replace(/'/g, "&#39;")})' title="Edit"><i class="fa-solid fa-pen"></i></button>
+                  <button class="btn-icon-small" style="color: var(--danger);" onclick="deleteMenu(${m.id})" title="Hapus"><i class="fa-solid fa-trash"></i></button>
+>>>>>>> 9055762d63d710105a6297457545a0cdb76182ce
               </div>
             </td>
           </tr>`
@@ -166,10 +201,14 @@ function openEditor(item) {
     document.getElementById('editCostPrice').value = item.cost_price || 0;
     document.getElementById('editPrice').value = item.price;
     document.getElementById('editStock').value = item.stock;
+<<<<<<< HEAD
     document.getElementById('editIsDiscount').checked = !!item.is_discount;
     document.getElementById('editDiscountPrice').value = item.discount_price || '';
     toggleDiscountField();
 
+=======
+    
+>>>>>>> 9055762d63d710105a6297457545a0cdb76182ce
     if (item.image) {
       document.getElementById('editImageBase64').value = item.image;
       document.getElementById('editImagePreview').src = item.image;
@@ -189,10 +228,14 @@ function openEditor(item) {
     document.getElementById('editCostPrice').value = '';
     document.getElementById('editPrice').value = '';
     document.getElementById('editStock').value = '';
+<<<<<<< HEAD
     document.getElementById('editIsDiscount').checked = false;
     document.getElementById('editDiscountPrice').value = '';
     toggleDiscountField();
 
+=======
+    
+>>>>>>> 9055762d63d710105a6297457545a0cdb76182ce
     document.getElementById('editImageBase64').value = '';
     document.getElementById('editImageFile').value = '';
     document.getElementById('editImagePreviewWrap').style.display = 'none';
@@ -201,11 +244,14 @@ function openEditor(item) {
   }
 }
 
+<<<<<<< HEAD
 function toggleDiscountField() {
   const on = document.getElementById('editIsDiscount').checked;
   document.getElementById('editDiscountWrap').style.display = on ? 'block' : 'none';
 }
 
+=======
+>>>>>>> 9055762d63d710105a6297457545a0cdb76182ce
 function previewMenuImage(event) {
   const file = event.target.files[0];
   if (!file) return;
@@ -229,6 +275,7 @@ function closeEditor() {
 
 async function saveMenu() {
   const id = document.getElementById('editId').value;
+<<<<<<< HEAD
   const isDiscount = document.getElementById('editIsDiscount').checked;
   const discountPrice = parseInt(document.getElementById('editDiscountPrice').value, 10) || null;
   const price = parseInt(document.getElementById('editPrice').value, 10);
@@ -264,13 +311,31 @@ async function saveMenu() {
   }
 
   if (!formData.get('name') || !formData.get('price')) {
+=======
+  const payload = {
+    name: document.getElementById('editName').value.trim(),
+    description: document.getElementById('editDesc').value.trim(),
+    category_id: document.getElementById('editCategory').value || null,
+    cost_price: parseInt(document.getElementById('editCostPrice').value, 10) || 0,
+    price: parseInt(document.getElementById('editPrice').value, 10),
+    stock: parseInt(document.getElementById('editStock').value, 10) || 0,
+    image: document.getElementById('editImageBase64').value || null,
+    is_available: document.getElementById('editAvailable').checked,
+  };
+  if (!payload.name || !payload.price) {
+>>>>>>> 9055762d63d710105a6297457545a0cdb76182ce
     alert('Nama & harga wajib diisi');
     return;
   }
   const url = id ? `/api/admin/menu/${id}` : '/api/admin/menu';
   const res = await fetch(url, {
     method: id ? 'PUT' : 'POST',
+<<<<<<< HEAD
     body: formData,
+=======
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+>>>>>>> 9055762d63d710105a6297457545a0cdb76182ce
   });
   if (res.ok) {
     closeEditor();
@@ -297,6 +362,7 @@ async function deleteMenu(id) {
   if (!ok) return;
   await loadCategories();
   await loadMenu();
+<<<<<<< HEAD
 
   // Biar bisa tekan Enter di kolom "Nama kategori baru" tanpa harus klik tombol +Kategori
   const newCatInput = document.getElementById('newCategoryInput');
@@ -308,4 +374,6 @@ async function deleteMenu(id) {
       }
     });
   }
+=======
+>>>>>>> 9055762d63d710105a6297457545a0cdb76182ce
 })();

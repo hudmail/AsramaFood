@@ -1,5 +1,6 @@
 const express = require('express');
 const bcrypt = require('bcryptjs');
+<<<<<<< HEAD
 const ExcelJS = require('exceljs');
 const PDFDocument = require('pdfkit');
 const multer = require('multer');
@@ -47,6 +48,11 @@ function uploadOne(fieldName) {
   };
 }
 
+=======
+const { db, getSetting, setSetting } = require('../db');
+const { requireAuth, requireOwner, loginRateLimit } = require('../middleware/auth');
+
+>>>>>>> 9055762d63d710105a6297457545a0cdb76182ce
 const router = express.Router();
 
 const VALID_STATUSES = ['pending', 'diproses', 'siap', 'diantar', 'selesai', 'dibatalkan'];
@@ -135,6 +141,7 @@ router.patch('/orders/:id/status', requireAuth, (req, res) => {
     if (status === 'dibatalkan' && order.status !== 'dibatalkan') {
       const items = db.prepare('SELECT * FROM order_items WHERE order_id = ?').all(order.id);
       const restoreStock = db.prepare('UPDATE menu_items SET stock = stock + ? WHERE id = ?');
+<<<<<<< HEAD
       // sold_count juga harus dikurangi balik, kalau tidak menu yang laris
       // gara-gara pesanan yang akhirnya dibatalkan akan tetap dianggap
       // "terlaris" selamanya walau transaksinya tidak pernah benar-benar terjadi.
@@ -144,6 +151,10 @@ router.patch('/orders/:id/status', requireAuth, (req, res) => {
           restoreStock.run(it.qty, it.menu_item_id);
           decrementSold.run(it.qty, it.menu_item_id);
         }
+=======
+      items.forEach((it) => {
+        if (it.menu_item_id) restoreStock.run(it.qty, it.menu_item_id);
+>>>>>>> 9055762d63d710105a6297457545a0cdb76182ce
       });
     }
     db.prepare(`UPDATE orders SET status = ?, updated_at = datetime('now') WHERE id = ?`).run(status, order.id);
@@ -187,6 +198,7 @@ router.get('/menu', requireAuth, (req, res) => {
   res.json(rows);
 });
 
+<<<<<<< HEAD
 // FormData (multipart) mengirim SEMUA field sebagai string, termasuk untuk
 // checkbox ("0"/"1") dan angka ("15000"). String "0" itu truthy di JS, dan
 // perbandingan >=/<= antar string dilakukan leksikografis (bukan numerik) -
@@ -274,6 +286,47 @@ router.put('/menu/:id', requireAuth, uploadOne('image'), (req, res) => {
     `UPDATE menu_items SET name = ?, description = ?, price = ?, cost_price = ?, stock = ?, category_id = ?, image = ?, is_available = ?, discount_price = ?, is_discount = ?
      WHERE id = ?`
   ).run(name, description, price, cost_price, stock, category_id, image, is_available ? 1 : 0, is_discount ? discount_price : null, is_discount ? 1 : 0, req.params.id);
+=======
+router.post('/menu', requireAuth, (req, res) => {
+  const { name, description = '', price, cost_price = 0, stock = 0, category_id = null, image = null, is_available = 1 } = req.body || {};
+  if (!name || !price) return res.status(400).json({ error: 'Nama & harga wajib diisi' });
+  if (image && !String(image).startsWith('data:image/')) return res.status(400).json({ error: 'Gambar tidak valid' });
+  if (image && image.length > 2.5 * 1024 * 1024) return res.status(400).json({ error: 'Ukuran gambar terlalu besar (maksimal 2MB)' });
+
+  const result = db
+    .prepare(
+      `INSERT INTO menu_items (category_id, name, description, price, cost_price, stock, is_available, image)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
+    )
+    .run(category_id, name, description, price, cost_price, stock, is_available ? 1 : 0, image);
+  res.status(201).json({ id: result.lastInsertRowid });
+});
+
+router.put('/menu/:id', requireAuth, (req, res) => {
+  const existing = db.prepare('SELECT * FROM menu_items WHERE id = ?').get(req.params.id);
+  if (!existing) return res.status(404).json({ error: 'Menu tidak ditemukan' });
+
+  const {
+    name = existing.name,
+    description = existing.description,
+    price = existing.price,
+    cost_price = existing.cost_price,
+    stock = existing.stock,
+    category_id = existing.category_id,
+    image = existing.image,
+    is_available = existing.is_available,
+  } = req.body || {};
+
+  if (req.body.image !== undefined) {
+    if (req.body.image && !String(req.body.image).startsWith('data:image/')) return res.status(400).json({ error: 'Gambar tidak valid' });
+    if (req.body.image && req.body.image.length > 2.5 * 1024 * 1024) return res.status(400).json({ error: 'Ukuran gambar terlalu besar (maksimal 2MB)' });
+  }
+
+  db.prepare(
+    `UPDATE menu_items SET name = ?, description = ?, price = ?, cost_price = ?, stock = ?, category_id = ?, image = ?, is_available = ?
+     WHERE id = ?`
+  ).run(name, description, price, cost_price, stock, category_id, image, is_available ? 1 : 0, req.params.id);
+>>>>>>> 9055762d63d710105a6297457545a0cdb76182ce
 
   res.json({ ok: true });
 });
@@ -281,9 +334,13 @@ router.put('/menu/:id', requireAuth, uploadOne('image'), (req, res) => {
 // Hapus menu bersifat destruktif (data lama di riwayat pesanan tetap aman lewat snapshot,
 // tapi menu itu sendiri hilang) -> dibatasi untuk owner saja.
 router.delete('/menu/:id', requireOwner, (req, res) => {
+<<<<<<< HEAD
   const existing = db.prepare('SELECT image FROM menu_items WHERE id = ?').get(req.params.id);
   db.prepare('DELETE FROM menu_items WHERE id = ?').run(req.params.id);
   if (existing) deleteUploadedFile(existing.image);
+=======
+  db.prepare('DELETE FROM menu_items WHERE id = ?').run(req.params.id);
+>>>>>>> 9055762d63d710105a6297457545a0cdb76182ce
   res.json({ ok: true });
 });
 
@@ -324,6 +381,7 @@ router.get('/settings', requireAuth, (req, res) => {
 
 // Pengaturan toko (jam buka, ongkir, metode pembayaran, gambar QRIS, dll)
 // adalah keputusan level pemilik usaha -> dibatasi untuk owner saja.
+<<<<<<< HEAD
 router.put('/settings', requireOwner, uploadOne('qris_image'), (req, res) => {
   const { store_name, is_open, delivery_fee, open_hours, available_buildings, allow_qris, allow_cod } = req.body || {};
   const qris_image = req.file ? `/uploads/${req.file.filename}` : req.body.qris_image;
@@ -333,10 +391,20 @@ router.put('/settings', requireOwner, uploadOne('qris_image'), (req, res) => {
   }
   if (store_name !== undefined) setSetting('store_name', store_name);
   if (is_open !== undefined) setSetting('is_open', toBool(is_open) ? '1' : '0');
+=======
+router.put('/settings', requireOwner, (req, res) => {
+  const { store_name, is_open, delivery_fee, open_hours, qris_image, available_buildings, allow_qris, allow_cod } = req.body || {};
+  if (qris_image !== undefined && qris_image !== '' && !String(qris_image).startsWith('data:image/')) {
+    return res.status(400).json({ error: 'Gambar QRIS tidak valid' });
+  }
+  if (store_name !== undefined) setSetting('store_name', store_name);
+  if (is_open !== undefined) setSetting('is_open', is_open ? '1' : '0');
+>>>>>>> 9055762d63d710105a6297457545a0cdb76182ce
   if (delivery_fee !== undefined) setSetting('delivery_fee', delivery_fee);
   if (open_hours !== undefined) setSetting('open_hours', open_hours);
   if (qris_image !== undefined) setSetting('qris_image', qris_image);
   if (available_buildings !== undefined) setSetting('available_buildings', available_buildings);
+<<<<<<< HEAD
   if (allow_qris !== undefined) setSetting('allow_qris', toBool(allow_qris) ? '1' : '0');
   if (allow_cod !== undefined) setSetting('allow_cod', toBool(allow_cod) ? '1' : '0');
   res.json({ ok: true });
@@ -463,4 +531,11 @@ router.get('/reports/pdf', requireAuth, (req, res) => {
   doc.end();
 });
 
+=======
+  if (allow_qris !== undefined) setSetting('allow_qris', allow_qris ? '1' : '0');
+  if (allow_cod !== undefined) setSetting('allow_cod', allow_cod ? '1' : '0');
+  res.json({ ok: true });
+});
+
+>>>>>>> 9055762d63d710105a6297457545a0cdb76182ce
 module.exports = router;

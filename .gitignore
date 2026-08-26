@@ -1,5 +1,8 @@
 node_modules/
 data/
+<<<<<<< HEAD
 public/uploads/
+=======
+>>>>>>> 9055762d63d710105a6297457545a0cdb76182ce
 .env
 *.log

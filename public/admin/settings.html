@@ -3,12 +3,21 @@
     <header class="admin-header">
         <div class="header-inner">
             <div style="display: flex; align-items: center; gap: 1rem;">
+<<<<<<< HEAD
                 <button class="icon-btn mobile-menu-btn" id="toggle-sidebar"><i aria-hidden="true" class="fa-solid fa-bars"></i></button>
                 <a class="admin-brand" href="/admin/index.html"><i aria-hidden="true" class="fa-solid fa-utensils"></i> AdminPanel</a>
             </div>
             <div class="admin-header-actions">
                 <button class="icon-btn" id="theme-toggle"><i aria-hidden="true" class="fa-solid fa-moon"></i></button>
                 <button class="logout-btn" onclick="logout()"><i aria-hidden="true" class="fa-solid fa-arrow-right-from-bracket"></i> <span class="desktop-only" style="margin-left: 0.4rem;">Keluar</span></button>
+=======
+                <button class="icon-btn mobile-menu-btn" id="toggle-sidebar"><i class="fa-solid fa-bars"></i></button>
+                <a class="admin-brand" href="/admin/index.html"><i class="fa-solid fa-utensils"></i> AdminPanel</a>
+            </div>
+            <div class="admin-header-actions">
+                <button class="icon-btn" id="theme-toggle"><i class="fa-solid fa-moon"></i></button>
+                <button class="logout-btn" onclick="logout()"><i class="fa-solid fa-arrow-right-from-bracket"></i> <span class="desktop-only" style="margin-left: 0.4rem;">Keluar</span></button>
+>>>>>>> 9055762d63d710105a6297457545a0cdb76182ce
             </div>
         </div>
     </header>
@@ -16,10 +25,16 @@
     <div class="admin-layout">
         <aside class="sidebar" id="sidebar">
             <nav>
+<<<<<<< HEAD
                 <a class="nav-item" href="/admin/index.html"><i aria-hidden="true" class="fa-solid fa-receipt"></i> Pesanan</a>
                 <a class="nav-item" href="/admin/menu.html"><i aria-hidden="true" class="fa-solid fa-bowl-food"></i> Kelola Menu</a>
                 <a class="nav-item" href="/admin/reports.html"><i aria-hidden="true" class="fa-solid fa-file-excel"></i> Laporan</a>
                 <a class="nav-item active" href="/admin/settings.html"><i aria-hidden="true" class="fa-solid fa-gear"></i> Pengaturan</a>
+=======
+                <a class="nav-item" href="/admin/index.html"><i class="fa-solid fa-receipt"></i> Pesanan</a>
+                <a class="nav-item" href="/admin/menu.html"><i class="fa-solid fa-bowl-food"></i> Kelola Menu</a>
+                <a class="nav-item active" href="/admin/settings.html"><i class="fa-solid fa-gear"></i> Pengaturan</a>
+>>>>>>> 9055762d63d710105a6297457545a0cdb76182ce
             </nav>
         </aside>
 
@@ -64,7 +79,11 @@
                             </div>
                         </div>
 
+<<<<<<< HEAD
                         <button class="btn" style="margin-top: 1.5rem; width: 100%;" onclick="saveSettings()"><i aria-hidden="true" class="fa-solid fa-floppy-disk"></i> Simpan Pengaturan</button>
+=======
+                        <button class="btn" style="margin-top: 1.5rem; width: 100%;" onclick="saveSettings()"><i class="fa-solid fa-floppy-disk"></i> Simpan Pengaturan</button>
+>>>>>>> 9055762d63d710105a6297457545a0cdb76182ce
                     </div>
                 </div>
 
@@ -76,7 +95,11 @@
                         <p class="field-help" style="margin-bottom:1rem; color: var(--text-muted); font-size: 0.9rem;">Gambar QRIS ini tampil di halaman tracking untuk pesanan yang memilih metode pembayaran QRIS.</p>
                         <div class="form-group"><input class="form-control" type="file" id="qrisFile" accept="image/*" onchange="previewQris(event)"></div>
                         <div id="qrisPreviewWrap" style="display:none;margin-bottom:1.5rem; text-align: center;"><img id="qrisPreview" style="max-width:100%;max-height:300px;border:1px solid var(--border-color);border-radius:var(--radius-md);padding:8px;background:var(--bg-card)"></div>
+<<<<<<< HEAD
                         <button class="btn secondary" style="width: 100%;" onclick="saveQris()"><i aria-hidden="true" class="fa-solid fa-cloud-arrow-up"></i> Simpan QRIS</button>
+=======
+                        <button class="btn secondary" style="width: 100%;" onclick="saveQris()"><i class="fa-solid fa-cloud-arrow-up"></i> Simpan QRIS</button>
+>>>>>>> 9055762d63d710105a6297457545a0cdb76182ce
                     </div>
                 </div>
             </div>
