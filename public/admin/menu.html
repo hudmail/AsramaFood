@@ -1,0 +1,75 @@
+<!DOCTYPE html><html lang="id"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Menu - Admin AsramaFood</title><link rel="icon" type="image/svg+xml" href="/favicon.svg"><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap" rel="stylesheet"><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"><link rel="stylesheet" href="/css/style.css"></head>
+<body class="admin-body">
+    <header class="admin-header">
+        <div class="header-inner">
+            <div style="display: flex; align-items: center; gap: 1rem;">
+                <button class="icon-btn mobile-menu-btn" id="toggle-sidebar"><i aria-hidden="true" class="fa-solid fa-bars"></i></button>
+                <a class="admin-brand" href="/admin/index.html"><i aria-hidden="true" class="fa-solid fa-utensils"></i> AdminPanel</a>
+            </div>
+            <div class="admin-header-actions">
+                <button class="icon-btn" id="theme-toggle"><i aria-hidden="true" class="fa-solid fa-moon"></i></button>
+                <button class="logout-btn" onclick="logout()"><i aria-hidden="true" class="fa-solid fa-arrow-right-from-bracket"></i> <span class="desktop-only" style="margin-left: 0.4rem;">Keluar</span></button>
+            </div>
+        </div>
+    </header>
+    <div class="admin-layout">
+        <aside class="sidebar" id="sidebar">
+            <nav>
+                <a class="nav-item" href="/admin/index.html"><i aria-hidden="true" class="fa-solid fa-receipt"></i> Pesanan</a>
+                <a class="nav-item active" href="/admin/menu.html"><i aria-hidden="true" class="fa-solid fa-bowl-food"></i> Kelola Menu</a>
+                <a class="nav-item" href="/admin/reports.html"><i aria-hidden="true" class="fa-solid fa-file-excel"></i> Laporan</a>
+                <a class="nav-item" href="/admin/settings.html"><i aria-hidden="true" class="fa-solid fa-gear"></i> Pengaturan</a>
+            </nav>
+        </aside>
+        <main class="main-content">
+            <div class="page-header"><h2>Kelola Menu</h2><p>Atur kategori, harga, stok, dan ketersediaan menu.</p></div>
+            <div class="panel">
+                <div class="panel-header" style="flex-direction:column; align-items:flex-start; gap:1rem;">
+                    <div style="display:flex; justify-content:space-between; width:100%; align-items:center;">
+                        <h3 style="font-size: 1.1rem; margin: 0;">Daftar Menu Asrama</h3>
+                        <button class="btn" style="width: auto; padding: 0.5rem 1rem; font-size: 0.9rem;" onclick="openEditor()"><i aria-hidden="true" class="fa-solid fa-plus"></i> Tambah Menu</button>
+                    </div>
+                    <div style="display:flex; justify-content:space-between; width:100%; align-items:center; flex-wrap:wrap; gap:1rem;">
+                        <div class="filter-tabs" id="categoryChips" style="margin-bottom:0; padding-bottom:0;"></div>
+                        <div style="display:flex;gap:.6rem; max-width: 300px; width: 100%;">
+                            <input class="form-control" id="newCategoryInput" placeholder="Nama kategori baru">
+                            <button class="btn secondary" style="width:auto; padding: 0.5rem 1rem;" onclick="addCategory()">+ Kategori</button>
+                        </div>
+                    </div>
+                </div>
+                <div class="table-responsive" id="menuTableHost">
+                    <p style="padding:1rem">Memuat...</p>
+                </div>
+            </div>
+        </main>
+    </div>
+    <div class="modal-overlay" id="editorOverlay">
+        <div class="modal-card">
+            <div class="modal-header"><h3 id="editorTitle">Tambah Menu</h3><button class="close-modal" onclick="closeEditor()"><i aria-hidden="true" class="fa-solid fa-xmark"></i></button></div>
+            <input type="hidden" id="editId">
+            <div class="form-group"><label class="form-label">Nama Menu</label><input class="form-control" id="editName"></div>
+            <div class="form-group"><label class="form-label">Deskripsi</label><textarea class="form-control" id="editDesc" rows="3"></textarea></div>
+            <div class="form-group"><label class="form-label">Kategori</label><select class="form-control" id="editCategory"></select></div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                <div class="form-group"><label class="form-label">Harga Pokok (Rp)</label><input class="form-control" type="number" id="editCostPrice"></div>
+                <div class="form-group"><label class="form-label">Harga Jual (Rp)</label><input class="form-control" type="number" id="editPrice"></div>
+            </div>
+            <div class="form-group" style="display: flex; align-items: center; gap: 0.5rem;">
+                <input type="checkbox" id="editIsDiscount" style="width: 18px; height: 18px; accent-color: var(--primary);" onchange="toggleDiscountField()">
+                <label for="editIsDiscount" style="margin: 0; font-size: 0.95rem; font-weight: 600;">Sedang diskon</label>
+            </div>
+            <div class="form-group" id="editDiscountWrap" style="display:none;">
+                <label class="form-label">Harga Diskon (Rp)</label>
+                <input class="form-control" type="number" id="editDiscountPrice" placeholder="Harus lebih murah dari harga jual">
+            </div>
+            <div class="form-group"><label class="form-label">Stok</label><input class="form-control" type="number" id="editStock"></div>
+            <div class="form-group"><label class="form-label">Foto Menu</label><input class="form-control" type="file" id="editImageFile" accept="image/*" onchange="previewMenuImage(event)"><input type="hidden" id="editImageBase64"></div>
+            <div id="editImagePreviewWrap" style="display:none;margin-bottom:1rem"><img id="editImagePreview" style="max-width:150px;border-radius:var(--radius-sm);border:1px solid var(--border-color);padding:4px;background:var(--bg-card);"></div>
+            <div class="form-group" style="display: flex; align-items: center; gap: 0.5rem; margin-top: 0.5rem;">
+                <input type="checkbox" id="editAvailable" style="width: 18px; height: 18px; accent-color: var(--primary);">
+                <label for="editAvailable" style="margin: 0; font-size: 0.95rem; font-weight: 600;">Tersedia dijual</label>
+            </div>
+            <button class="btn" style="margin-top: 1rem;" onclick="saveMenu()">Simpan Menu</button>
+        </div>
+    </div>
+<script src="/js/theme.js"></script><script>initThemeToggle('theme-toggle');const sidebar = document.getElementById('sidebar');const toggleBtn = document.getElementById('toggle-sidebar');if(toggleBtn && sidebar) {toggleBtn.addEventListener('click', () => sidebar.classList.toggle('open'));}</script><script src="/admin/js/menu.js"></script></body></html>
