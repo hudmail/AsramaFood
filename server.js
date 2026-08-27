@@ -37,6 +37,23 @@ app.use(
         connectSrc: ["'self'"],
         objectSrc: ["'none'"],
         frameAncestors: ["'self'"],
+        // PENTING: helmet MENYISIPKAN 'upgrade-insecure-requests' secara default
+        // ke CSP walau kita sudah override directive lain di atas (directives
+        // yang tidak disebutkan tetap dipakai dari default helmet, bukan hilang).
+        // Directive ini memaksa BROWSER mengubah semua request http:// di
+        // halaman (termasuk CSS/JS/gambar dari domain sendiri) jadi https://
+        // sebelum diambil. Kalau server tidak benar-benar melayani HTTPS di
+        // port itu (misal deploy di CasaOS/NAS/homelab diakses lewat IP polos
+        // seperti http://192.168.x.x:3000), semua aset itu gagal dimuat dengan
+        // error ERR_SSL_PROTOCOL_ERROR dan halaman jadi tanpa styling sama
+        // sekali. Di localhost hal ini tidak kelihatan karena browser
+        // menganggap "localhost" origin yang sudah aman sehingga tidak
+        // di-upgrade - makanya mulus saat di test di Windows tapi rusak begitu
+        // diakses lewat alamat IP/domain lain di jaringan. Set null untuk
+        // mematikan directive ini (App ini memang belum disajikan lewat HTTPS
+        // langsung; kalau nanti dipasang reverse proxy dengan HTTPS beneran,
+        // directive ini boleh diaktifkan lagi).
+        upgradeInsecureRequests: null,
       },
     },
   })
