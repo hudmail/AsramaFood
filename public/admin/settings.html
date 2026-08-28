@@ -39,12 +39,54 @@
                         <div class="form-group"><label class="form-label">Jam Buka</label><input class="form-control" id="openHours" placeholder="07:00 - 21:00"></div>
                         <div class="form-group"><label class="form-label">Ongkos Kirim (Rp)</label><input class="form-control" type="number" id="deliveryFee"></div>
                         <div class="form-group"><label class="form-label">Gedung Tersedia (pisahkan dengan koma)</label><input class="form-control" id="availableBuildings" placeholder="Gedung 2, Gedung 3"></div>
-                        
-                        <div class="form-group" style="display: flex; align-items: center; gap: 0.75rem; margin-top: 1rem; padding: 1rem; border: 1px solid var(--border-color); border-radius: var(--radius-sm);">
+
+                        <hr style="border:none;border-top:1px solid var(--border-color);margin:1.25rem 0 1rem;">
+                        <div style="font-size:0.85rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:1rem;"><i class="fa-solid fa-sliders" style="color:var(--primary)"></i> Harga Opsi Tambahan</div>
+                        <div class="form-group"><label class="form-label"><i class="fa-solid fa-egg" style="color:var(--primary)"></i> Harga Tambah Telur (Rp) <small style="color:var(--text-muted);font-weight:400">— khusus kategori Makanan</small></label><input class="form-control" type="number" id="eggPrice" placeholder="3000"></div>
+                        <div class="form-group"><label class="form-label"><i class="fa-solid fa-egg" style="color:#f59e0b"></i> Stok Telur (butir) <small style="color:var(--text-muted);font-weight:400">— isi ulang saat beli telur baru, otomatis berkurang saat ada pesanan +Telur</small></label>
+                          <div style="display:flex;gap:0.5rem;align-items:center;">
+                            <input class="form-control" type="number" id="eggStock" placeholder="0" min="0" style="flex:1;">
+                            <span id="eggStockBadge" style="font-size:0.82rem;font-weight:700;white-space:nowrap;padding:0.35rem 0.75rem;border-radius:var(--radius-full);background:var(--bg-body);border:1px solid var(--border-color);">— butir</span>
+                          </div>
+                        </div>
+                        <div class="form-group"><label class="form-label"><i class="fa-solid fa-snowflake" style="color:var(--primary)"></i> Surcharge Es/Dingin (Rp) <small style="color:var(--text-muted);font-weight:400">— khusus kategori Minuman</small></label><input class="form-control" type="number" id="drinkColdPrice" placeholder="1000"></div>
+
+                        <hr style="border:none;border-top:1px solid var(--border-color);margin:1.25rem 0 1rem;">
+
+                        <!-- Toggle: Jadwal Otomatis -->
+                        <div class="form-group" style="display: flex; align-items: center; gap: 0.75rem; margin-top: 1rem; padding: 1rem; background: var(--primary-light); border: 1.5px solid var(--primary); border-radius: var(--radius-sm);">
+                            <input type="checkbox" id="autoSchedule" style="width: 20px; height: 20px; accent-color: var(--primary);" onchange="toggleScheduleUI()">
+                            <div>
+                                <label for="autoSchedule" style="margin: 0; font-size: 1rem; font-weight: 700; cursor:pointer; color:var(--primary);"><i class="fa-solid fa-clock"></i> Jadwal Buka/Tutup Otomatis</label>
+                                <div style="font-size: 0.8rem; color: var(--text-muted);">Toko akan buka & tutup otomatis sesuai jam yang ditentukan</div>
+                            </div>
+                        </div>
+
+                        <!-- Panel: Jam Otomatis (muncul jika auto_schedule aktif) -->
+                        <div id="schedulePanel" style="display:none; margin-top:0.75rem; padding: 1rem; border: 1px solid var(--border-color); border-radius: var(--radius-sm); background: var(--bg-body);">
+                            <div style="font-size:0.82rem;font-weight:600;color:var(--text-muted);margin-bottom:0.75rem;"><i class="fa-solid fa-clock-rotate-left"></i> Atur Jam Operasional</div>
+                            <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;">
+                                <div class="form-group" style="margin:0;">
+                                    <label class="form-label"><i class="fa-solid fa-sun" style="color:#f59e0b"></i> Jam Buka</label>
+                                    <input class="form-control" type="time" id="scheduleOpen" value="07:00">
+                                </div>
+                                <div class="form-group" style="margin:0;">
+                                    <label class="form-label"><i class="fa-solid fa-moon" style="color:#6366f1"></i> Jam Tutup</label>
+                                    <input class="form-control" type="time" id="scheduleClose" value="21:00">
+                                </div>
+                            </div>
+                            <div style="margin-top:0.75rem;padding:0.6rem 0.85rem;background:var(--bg-card);border-radius:var(--radius-sm);font-size:0.8rem;color:var(--text-muted);">
+                                <i class="fa-solid fa-circle-info" style="color:var(--primary)"></i>
+                                Status buka/tutup toko dihitung otomatis dari jam server. Jika jam tutup lebih kecil dari jam buka (misal 22:00 – 02:00), sistem mendukung jadwal melewati tengah malam.
+                            </div>
+                        </div>
+
+                        <!-- Toggle manual (muncul jika auto_schedule nonaktif) -->
+                        <div id="manualOpenPanel" class="form-group" style="display: flex; align-items: center; gap: 0.75rem; margin-top: 0.75rem; padding: 1rem; border: 1px solid var(--border-color); border-radius: var(--radius-sm);">
                             <input type="checkbox" id="isOpen" style="width: 20px; height: 20px; accent-color: var(--primary);">
                             <div>
                                 <label for="isOpen" style="margin: 0; font-size: 1rem; font-weight: 600; cursor:pointer;">Toko sedang buka</label>
-                                <div style="font-size: 0.8rem; color: var(--text-muted);">Izinkan pelanggan untuk membuat pesanan baru</div>
+                                <div style="font-size: 0.8rem; color: var(--text-muted);">Toggle manual — tidak berlaku jika jadwal otomatis aktif</div>
                             </div>
                         </div>
 

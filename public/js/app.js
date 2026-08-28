@@ -1,7 +1,7 @@
 let allMenu = [];
 let categories = [];
 let cart = {};
-let settings = { store_name: 'AsramaFood', is_open: true, delivery_fee: 0, open_hours: '', allow_qris: true, allow_cod: true };
+let settings = { store_name: 'AsramaFood', is_open: true, delivery_fee: 0, open_hours: '', allow_qris: true, allow_cod: true, egg_price: 3000, drink_temp_cold_price: 1000 };
 let state = {
   activeCategory: '', searchQuery: '', maxPriceFilter: 'all',
   location: JSON.parse(localStorage.getItem('af_location') || 'null') || { building: 'Gedung A' }
@@ -15,10 +15,26 @@ function escapeHtml(str='') { const d=document.createElement('div'); d.textConte
 function effectivePrice(item) { return item.is_discount && item.discount_price ? item.discount_price : item.price; }
 function showToast(msg) { $('toast-text').textContent=msg; $('toast-message').classList.add('show'); setTimeout(()=>$('toast-message').classList.remove('show'),2400); }
 function cartEntries(){ return Object.values(cart); }
-function subtotal(){ return cartEntries().reduce((s,e)=>s+effectivePrice(e.item)*e.qty,0); }
+function subtotal(){ return cartEntries().reduce((s,e)=>s+(effectivePrice(e.item)+addonPriceForEntry(e))*e.qty,0); }
 function selectedPickup(){ return document.querySelector('input[name="pickup"]:checked')?.value || 'antar'; }
 function selectedPayment(){ return document.querySelector('input[name="payment"]:checked')?.value || 'qris'; }
 function shipping(){ return selectedPickup()==='antar' ? Number(settings.delivery_fee||0) : 0; }
+
+// Hitung harga addon untuk satu entry keranjang (sesuai opsi yang dipilih)
+function addonPriceForEntry(entry) {
+  if (!entry.options) return 0;
+  let extra = 0;
+  if (entry.options.add_egg) extra += (settings.egg_price || 3000);
+  if (entry.options.temp === 'dingin') extra += (settings.drink_temp_cold_price || 1000);
+  return extra;
+}
+
+// Buat cart key yang unik per item + opsi (agar item sama tapi opsi berbeda bisa berdampingan)
+function cartKey(itemId, options) {
+  const egg = options?.add_egg ? '1' : '0';
+  const temp = options?.temp || '';
+  return `${itemId}_${egg}_${temp}`;
+}
 
 async function api(url, options){ const r=await fetch(url,options); const data=await r.json(); if(!r.ok) throw new Error(data.error||'Terjadi kesalahan'); return data; }
 
@@ -83,18 +99,172 @@ async function loadBestSellers(){
     section.style.display = 'none';
   }
 }
-window.addToCart=(id)=>{
-  if(!settings.is_open) return showToast('Toko sedang tutup');
-  const item=allMenu.find(x=>x.id===id); if(!item) return;
-  const current=cart[id]?.qty||0; if(current>=item.stock) return showToast('Jumlah melebihi stok');
-  cart[id]={item,qty:current+1}; updateCart(); showToast(`${item.name} ditambahkan`);
+
+// --- Modal Pilih Opsi ---
+let _optionPendingItem = null;
+
+window.addToCart = (id) => {
+  if (!settings.is_open) return showToast('Toko sedang tutup');
+  const item = allMenu.find(x => x.id === id);
+  if (!item) return;
+  const catName = (item.category_name || '').toLowerCase();
+  const hasEgg = !!item.allow_egg;          // per-item config dari admin
+  const isMinuman = catName === 'minuman';
+
+  if (hasEgg || isMinuman) {
+    // Tampilkan modal opsi
+    _optionPendingItem = item;
+    renderOptionModal(item, hasEgg, isMinuman);
+    $('option-modal').classList.add('open');
+  } else {
+    // Tidak ada opsi → langsung masuk keranjang
+    _doAddToCart(item, {});
+  }
 };
-window.updateQuantity=(id,delta)=>{ if(!cart[id]) return; const next=cart[id].qty+delta; if(next<=0) delete cart[id]; else if(next<=cart[id].item.stock) cart[id].qty=next; else return showToast('Jumlah melebihi stok'); updateCart(); };
+
+function renderOptionModal(item, hasEgg, isMinuman) {
+  const eggPrice = settings.egg_price || 3000;
+  const coldPrice = settings.drink_temp_cold_price || 1000;
+
+  let html = `<div class="option-item-preview">`;
+  if (item.image) {
+    html += `<img src="${item.image}" alt="${escapeHtml(item.name)}" class="option-item-img">`;
+  } else {
+    html += `<div class="option-item-emoji">${escapeHtml(item.image_emoji || '🍽️')}</div>`;
+  }
+  html += `<div><div class="option-item-name">${escapeHtml(item.name)}</div><div class="option-item-price">${money(effectivePrice(item))}</div></div></div>`;
+
+  if (hasEgg) {
+    const eggStockLeft = settings.egg_stock ?? 0;
+    const eggOut = eggStockLeft <= 0;
+    const eggStockBadge = eggOut
+      ? `<span class="option-price-tag" style="background:#fee2e2;color:#b91c1c;border-color:#fca5a5;">🥚 Stok habis</span>`
+      : `<span class="option-price-tag" style="background:#d1fae5;color:#065f46;">🥚 Sisa ${eggStockLeft}</span>`;
+    html += `
+    <div class="option-section">
+      <div class="option-label"><i class="fa-solid fa-egg"></i> Tambah Telur <span class="option-price-tag">+${money(eggPrice)}</span>${eggStockBadge}</div>
+      <div class="option-toggle-group">
+        <label class="option-toggle-btn active" id="opt-egg-no">
+          <input type="radio" name="opt_egg" value="no" checked hidden> Tidak
+        </label>
+        <label class="option-toggle-btn${eggOut ? ' disabled' : ''}" id="opt-egg-yes" ${eggOut ? 'aria-disabled="true" title="Stok telur habis"' : ''}>
+          <input type="radio" name="opt_egg" value="yes" hidden ${eggOut ? 'disabled' : ''}> <i class="fa-solid fa-egg"></i> + Telur
+        </label>
+      </div>
+    </div>`;
+  }
+
+  if (isMinuman) {
+    html += `
+    <div class="option-section">
+      <div class="option-label"><i class="fa-solid fa-temperature-half"></i> Suhu Minuman</div>
+      <div class="option-toggle-group">
+        <label class="option-toggle-btn active" id="opt-temp-panas">
+          <input type="radio" name="opt_temp" value="panas" checked hidden> <i class="fa-solid fa-fire"></i> Panas
+        </label>
+        <label class="option-toggle-btn" id="opt-temp-dingin">
+          <input type="radio" name="opt_temp" value="dingin" hidden> <i class="fa-solid fa-snowflake"></i> Es/Dingin <span class="option-price-tag">+${money(coldPrice)}</span>
+        </label>
+      </div>
+    </div>`;
+  }
+
+  $('option-modal-body').innerHTML = html;
+
+  // Bind toggle visual — skip tombol disabled (stok habis)
+  document.querySelectorAll('#option-modal .option-toggle-btn:not(.disabled)').forEach(btn => {
+    btn.onclick = () => {
+      const input = btn.querySelector('input');
+      if (input.disabled) return; // guard tambahan
+      const groupName = input.name;
+      document.querySelectorAll(`#option-modal input[name="${groupName}"]`).forEach(r => {
+        r.closest('.option-toggle-btn').classList.remove('active');
+      });
+      input.checked = true;
+      btn.classList.add('active');
+      // Update preview harga
+      updateOptionPreviewPrice(item, hasEgg, isMinuman);
+    };
+  });
+
+  updateOptionPreviewPrice(item, hasEgg, isMinuman);
+}
+
+function updateOptionPreviewPrice(item, hasEgg, isMinuman) {
+  const eggPrice = settings.egg_price || 3000;
+  const coldPrice = settings.drink_temp_cold_price || 1000;
+  let total = effectivePrice(item);
+  // Hanya hitung harga +Telur kalau stok masih ada dan radio tidak disabled
+  if (hasEgg && (settings.egg_stock ?? 0) > 0) {
+    const checkedEgg = document.querySelector('#option-modal input[name="opt_egg"]:checked');
+    if (checkedEgg && !checkedEgg.disabled && checkedEgg.value === 'yes') total += eggPrice;
+  }
+  if (isMinuman) {
+    const temp = document.querySelector('#option-modal input[name="opt_temp"]:checked')?.value;
+    if (temp === 'dingin') total += coldPrice;
+  }
+  const priceEl = $('option-modal-total-price');
+  if (priceEl) priceEl.textContent = money(total);
+}
+
+function confirmOptionModal() {
+  const item = _optionPendingItem;
+  if (!item) return;
+  const catName = (item.category_name || '').toLowerCase();
+  const hasEgg = !!item.allow_egg;
+  const isMinuman = catName === 'minuman';
+
+  const options = {};
+  // +Telur: hanya kalau allow_egg=true DAN stok > 0 DAN radio tidak disabled
+  if (hasEgg && (settings.egg_stock ?? 0) > 0) {
+    const checkedEgg = document.querySelector('#option-modal input[name="opt_egg"]:checked');
+    if (checkedEgg && !checkedEgg.disabled && checkedEgg.value === 'yes') options.add_egg = true;
+  }
+  if (isMinuman) {
+    const val = document.querySelector('#option-modal input[name="opt_temp"]:checked')?.value;
+    if (val) options.temp = val;
+  }
+
+  $('option-modal').classList.remove('open');
+  _optionPendingItem = null;
+  _doAddToCart(item, options);
+}
+
+function _doAddToCart(item, options) {
+  const key = cartKey(item.id, options);
+  const current = cart[key]?.qty || 0;
+  if (current >= item.stock) return showToast('Jumlah melebihi stok');
+  cart[key] = { item, qty: current + 1, options };
+  updateCart();
+  showToast(`${item.name} ditambahkan`);
+}
+
+window.updateQuantity = (key, delta) => {
+  if (!cart[key]) return;
+  const next = cart[key].qty + delta;
+  if (next <= 0) delete cart[key];
+  else if (next <= cart[key].item.stock) cart[key].qty = next;
+  else return showToast('Jumlah melebihi stok');
+  updateCart();
+};
+
+function optionLabel(entry) {
+  if (!entry.options) return '';
+  const parts = [];
+  if (entry.options.add_egg) parts.push('+Telur');
+  if (entry.options.temp === 'panas') parts.push('Panas');
+  if (entry.options.temp === 'dingin') parts.push('Es/Dingin');
+  return parts.length ? `<span class="cart-item-option">${parts.join(' · ')}</span>` : '';
+}
+
 function updateCart(){
   const entries=cartEntries(); $('cart-badge-count').textContent=entries.reduce((s,e)=>s+e.qty,0);
-  $('cart-items-container').innerHTML=entries.length?entries.map(({item,qty})=>{
+  $('cart-items-container').innerHTML=entries.length?entries.map((entry)=>{
+    const {item, qty, options} = entry;
+    const key = cartKey(item.id, options);
+    const unitPrice = effectivePrice(item) + addonPriceForEntry(entry);
     const visual = item.image ? `<img src="${item.image}" alt="Foto ${escapeHtml(item.name)}" style="width:100%; height:100%; object-fit:cover; display:block; border-radius:inherit;">` : escapeHtml(item.image_emoji||'🍽️');
-    return `<div class="cart-item"><div class="cart-emoji" style="padding:0; overflow:hidden;">${visual}</div><div class="cart-item-details"><div class="cart-item-title">${escapeHtml(item.name)}</div><div class="cart-item-price">${money(effectivePrice(item)*qty)}</div></div><div class="cart-qty-controls"><button class="qty-btn" onclick="updateQuantity(${item.id},-1)">−</button><span class="qty-count">${qty}</span><button class="qty-btn" onclick="updateQuantity(${item.id},1)">+</button></div></div>`;
+    return `<div class="cart-item"><div class="cart-emoji" style="padding:0; overflow:hidden;">${visual}</div><div class="cart-item-details"><div class="cart-item-title">${escapeHtml(item.name)}</div>${optionLabel(entry)}<div class="cart-item-price">${money(unitPrice*qty)}</div></div><div class="cart-qty-controls"><button class="qty-btn" onclick="updateQuantity('${key}',-1)">−</button><span class="qty-count">${qty}</span><button class="qty-btn" onclick="updateQuantity('${key}',1)">+</button></div></div>`;
   }).join(''):'<div class="empty-state compact"><i aria-hidden="true" class="fa-solid fa-basket-shopping"></i><p>Keranjang masih kosong.</p></div>';
   const sub=subtotal(); $('cart-subtotal').textContent=money(sub); $('cart-shipping').textContent=money(settings.delivery_fee); $('cart-total').textContent=money(sub+Number(settings.delivery_fee||0));
   refreshCheckoutSummary();
@@ -145,6 +315,10 @@ function setup(){
   document.querySelectorAll('.budget-chip').forEach(btn=>btn.onclick=()=>{state.maxPriceFilter=btn.dataset.maxPrice; document.querySelectorAll('.budget-chip').forEach(x=>x.classList.remove('active')); btn.classList.add('active'); renderMenu();});
   $('nav-search-trigger').onclick=e=>{e.preventDefault(); $('search-input').focus(); $('search-input').scrollIntoView({behavior:'smooth',block:'center'});}; $('nav-cart-trigger').onclick=e=>{e.preventDefault(); $('cart-drawer-overlay').classList.add('open');};
   bindRadioGroup('.pickup-group'); bindRadioGroup('.payment-group');
+  // Modal opsi
+  $('option-modal-confirm').onclick = confirmOptionModal;
+  $('option-modal-close').onclick = () => { $('option-modal').classList.remove('open'); _optionPendingItem = null; };
+  $('option-modal').onclick = e => { if (e.target === $('option-modal')) { $('option-modal').classList.remove('open'); _optionPendingItem = null; } };
   $('checkout-form').onsubmit=async e=>{
     e.preventDefault(); if(!cartEntries().length) return;
     const btn=e.currentTarget.querySelector('button[type="submit"]'); btn.disabled=true; btn.innerHTML='<i aria-hidden="true" class="fa-solid fa-spinner fa-spin"></i> Memproses...';
@@ -152,7 +326,7 @@ function setup(){
       const pickup=selectedPickup(), payment=selectedPayment();
       const room=pickup==='antar'?`${state.location.building} - ${$('checkout-room').value.trim()}`:'Ambil sendiri';
       const notes=[$('order-notes').value.trim(), pickup==='antar'?$('checkout-note').value.trim():''].filter(Boolean).join(' | ');
-      const data=await api('/api/orders',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({customer_name:$('student-name').value.trim(),room,whatsapp:$('student-whatsapp').value.trim(),note:notes,method:pickup,payment_method:payment,items:cartEntries().map(({item,qty})=>({menu_item_id:item.id,qty}))})});
+      const data=await api('/api/orders',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({customer_name:$('student-name').value.trim(),room,whatsapp:$('student-whatsapp').value.trim(),note:notes,method:pickup,payment_method:payment,items:cartEntries().map(({item,qty,options})=>({menu_item_id:item.id,qty,...(options||{})}))})});
       cart={}; updateCart(); window.location.href='/track.html?code='+encodeURIComponent(data.order_code);
     }catch(err){ showToast(err.message); btn.disabled=false; btn.innerHTML='<i aria-hidden="true" class="fa-solid fa-check"></i> Buat Pesanan'; }
   };

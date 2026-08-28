@@ -223,6 +223,7 @@ router.post('/menu', requireAuth, uploadOne('image'), (req, res) => {
   const is_available = toBool(body.is_available);
   const is_discount = toBool(body.is_discount);
   const discount_price = toIntOrNull(body.discount_price);
+  const allow_egg = toBool(body.allow_egg);
   // image WAJIB null (bukan undefined) kalau tidak ada file/nilai - node:sqlite
   // menolak bind parameter undefined dan bikin server crash (500).
   const image = req.file ? `/uploads/${req.file.filename}` : (body.image || null);
@@ -237,10 +238,10 @@ router.post('/menu', requireAuth, uploadOne('image'), (req, res) => {
 
   const result = db
     .prepare(
-      `INSERT INTO menu_items (category_id, name, description, price, cost_price, stock, is_available, image, discount_price, is_discount)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+      `INSERT INTO menu_items (category_id, name, description, price, cost_price, stock, is_available, image, discount_price, is_discount, allow_egg)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
     )
-    .run(category_id, name, description, price, cost_price, stock, is_available ? 1 : 0, image, is_discount ? discount_price : null, is_discount ? 1 : 0);
+    .run(category_id, name, description, price, cost_price, stock, is_available ? 1 : 0, image, is_discount ? discount_price : null, is_discount ? 1 : 0, allow_egg ? 1 : 0);
   res.status(201).json({ id: result.lastInsertRowid });
 });
 
@@ -258,6 +259,7 @@ router.put('/menu/:id', requireAuth, uploadOne('image'), (req, res) => {
   const is_available = body.is_available !== undefined ? toBool(body.is_available) : !!existing.is_available;
   const is_discount = body.is_discount !== undefined ? toBool(body.is_discount) : !!existing.is_discount;
   const discount_price = body.discount_price !== undefined ? toIntOrNull(body.discount_price) : existing.discount_price;
+  const allow_egg = body.allow_egg !== undefined ? toBool(body.allow_egg) : !!existing.allow_egg;
 
   const image = req.file ? `/uploads/${req.file.filename}` : (body.image !== undefined ? body.image || null : existing.image);
   if (req.file && existing.image && existing.image !== image) deleteUploadedFile(existing.image);
@@ -271,9 +273,9 @@ router.put('/menu/:id', requireAuth, uploadOne('image'), (req, res) => {
   }
 
   db.prepare(
-    `UPDATE menu_items SET name = ?, description = ?, price = ?, cost_price = ?, stock = ?, category_id = ?, image = ?, is_available = ?, discount_price = ?, is_discount = ?
+    `UPDATE menu_items SET name = ?, description = ?, price = ?, cost_price = ?, stock = ?, category_id = ?, image = ?, is_available = ?, discount_price = ?, is_discount = ?, allow_egg = ?
      WHERE id = ?`
-  ).run(name, description, price, cost_price, stock, category_id, image, is_available ? 1 : 0, is_discount ? discount_price : null, is_discount ? 1 : 0, req.params.id);
+  ).run(name, description, price, cost_price, stock, category_id, image, is_available ? 1 : 0, is_discount ? discount_price : null, is_discount ? 1 : 0, allow_egg ? 1 : 0, req.params.id);
 
   res.json({ ok: true });
 });
@@ -319,13 +321,19 @@ router.get('/settings', requireAuth, (req, res) => {
     available_buildings: getSetting('available_buildings', 'Gedung 2'),
     allow_qris: getSetting('allow_qris', '1') === '1',
     allow_cod: getSetting('allow_cod', '1') === '1',
+    egg_price: parseInt(getSetting('egg_price', '3000'), 10),
+    drink_temp_cold_price: parseInt(getSetting('drink_temp_cold_price', '1000'), 10),
+    egg_stock: parseInt(getSetting('egg_stock', '0'), 10),
+    auto_schedule: getSetting('auto_schedule', '0') === '1',
+    schedule_open: getSetting('schedule_open', '07:00'),
+    schedule_close: getSetting('schedule_close', '21:00'),
   });
 });
 
 // Pengaturan toko (jam buka, ongkir, metode pembayaran, gambar QRIS, dll)
 // adalah keputusan level pemilik usaha -> dibatasi untuk owner saja.
 router.put('/settings', requireOwner, uploadOne('qris_image'), (req, res) => {
-  const { store_name, is_open, delivery_fee, open_hours, available_buildings, allow_qris, allow_cod } = req.body || {};
+  const { store_name, is_open, delivery_fee, open_hours, available_buildings, allow_qris, allow_cod, egg_price, drink_temp_cold_price, egg_stock, auto_schedule, schedule_open, schedule_close } = req.body || {};
   const qris_image = req.file ? `/uploads/${req.file.filename}` : req.body.qris_image;
   if (req.file) {
     const oldQris = getSetting('qris_image', '');
@@ -339,6 +347,12 @@ router.put('/settings', requireOwner, uploadOne('qris_image'), (req, res) => {
   if (available_buildings !== undefined) setSetting('available_buildings', available_buildings);
   if (allow_qris !== undefined) setSetting('allow_qris', toBool(allow_qris) ? '1' : '0');
   if (allow_cod !== undefined) setSetting('allow_cod', toBool(allow_cod) ? '1' : '0');
+  if (egg_price !== undefined) setSetting('egg_price', parseInt(egg_price, 10) || 0);
+  if (drink_temp_cold_price !== undefined) setSetting('drink_temp_cold_price', parseInt(drink_temp_cold_price, 10) || 0);
+  if (egg_stock !== undefined) setSetting('egg_stock', Math.max(0, parseInt(egg_stock, 10) || 0));
+  if (auto_schedule !== undefined) setSetting('auto_schedule', toBool(auto_schedule) ? '1' : '0');
+  if (schedule_open !== undefined && /^\d{2}:\d{2}$/.test(schedule_open)) setSetting('schedule_open', schedule_open);
+  if (schedule_close !== undefined && /^\d{2}:\d{2}$/.test(schedule_close)) setSetting('schedule_close', schedule_close);
   res.json({ ok: true });
 });
 

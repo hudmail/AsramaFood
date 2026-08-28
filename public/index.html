@@ -126,6 +126,26 @@
     </aside>
   </div>
 
+  <!-- Modal Pilih Opsi -->
+  <div class="modal-overlay" id="option-modal">
+    <div class="modal-card option-modal-card">
+      <div class="modal-head">
+        <h3><i class="fa-solid fa-sliders" style="color:var(--primary)"></i> Pilih Opsi</h3>
+        <button class="close-btn" id="option-modal-close"><i aria-hidden="true" class="fa-solid fa-xmark"></i></button>
+      </div>
+      <div id="option-modal-body" style="padding: 0.25rem 0 1rem;"></div>
+      <div class="option-modal-footer">
+        <div class="option-total-row">
+          <span>Total harga</span>
+          <span id="option-modal-total-price" class="option-total-price">Rp 0</span>
+        </div>
+        <button class="checkout-btn" id="option-modal-confirm">
+          <i class="fa-solid fa-basket-shopping"></i> Masukkan Keranjang
+        </button>
+      </div>
+    </div>
+  </div>
+
   <div class="modal-overlay" id="location-modal">
     <div class="modal-card">
       <div class="modal-head">

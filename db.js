@@ -55,6 +55,7 @@ CREATE TABLE IF NOT EXISTS menu_items (
   is_available INTEGER DEFAULT 1,
   image_emoji TEXT DEFAULT '🍽️',
   image TEXT,
+  allow_egg INTEGER DEFAULT 0, -- 1 = pelanggan bisa pilih +Telur
   created_at TEXT DEFAULT (datetime('now'))
 );
 
@@ -126,6 +127,9 @@ if (!menuColumns.includes('is_discount')) {
 if (!menuColumns.includes('sold_count')) {
   db.exec(`ALTER TABLE menu_items ADD COLUMN sold_count INTEGER NOT NULL DEFAULT 0`);
 }
+if (!menuColumns.includes('allow_egg')) {
+  db.exec(`ALTER TABLE menu_items ADD COLUMN allow_egg INTEGER NOT NULL DEFAULT 0`);
+}
 const orderItemColumns = db.prepare("PRAGMA table_info(order_items)").all().map((c) => c.name);
 if (!orderItemColumns.includes('cost_snapshot')) {
   db.exec(`ALTER TABLE order_items ADD COLUMN cost_snapshot INTEGER NOT NULL DEFAULT 0`);
@@ -177,6 +181,12 @@ const defaultSettings = {
   available_buildings: 'Gedung 2',
   allow_qris: '1',
   allow_cod: '1',
+  egg_price: '3000',           // harga tambah telur (khusus kategori Makanan)
+  drink_temp_cold_price: '1000', // surcharge minuman dingin (khusus kategori Minuman)
+  egg_stock: '0',              // stok telur saat ini (0 = habis / tidak dicatat)
+  auto_schedule: '0',          // 1 = buka/tutup otomatis sesuai jadwal
+  schedule_open: '07:00',      // jam buka otomatis (HH:MM)
+  schedule_close: '21:00',     // jam tutup otomatis (HH:MM)
 };
 const insertSetting = db.prepare('INSERT OR IGNORE INTO settings (key, value) VALUES (?, ?)');
 Object.entries(defaultSettings).forEach(([k, v]) => insertSetting.run(k, v));
@@ -190,4 +200,38 @@ function setSetting(key, value) {
   db.prepare('INSERT INTO settings (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value').run(key, String(value));
 }
 
-module.exports = { db, getSetting, setSetting };
+/**
+ * Mengembalikan status buka/tutup toko yang efektif.
+ *
+ * - Jika auto_schedule = '0' → gunakan nilai manual is_open.
+ * - Jika auto_schedule = '1' → bandingkan jam sekarang (local time) dengan
+ *   schedule_open & schedule_close. Mendukung jadwal yang melewati tengah malam
+ *   (misal buka 22:00, tutup 02:00).
+ */
+function isStoreOpen() {
+  const autoSchedule = getSetting('auto_schedule', '0') === '1';
+  if (!autoSchedule) {
+    return getSetting('is_open', '1') === '1';
+  }
+
+  const scheduleOpen  = getSetting('schedule_open',  '07:00');
+  const scheduleClose = getSetting('schedule_close', '21:00');
+
+  const now = new Date();
+  const currentMinutes = now.getHours() * 60 + now.getMinutes();
+
+  const [openH,  openM]  = scheduleOpen.split(':').map(Number);
+  const [closeH, closeM] = scheduleClose.split(':').map(Number);
+  const openMinutes  = openH  * 60 + openM;
+  const closeMinutes = closeH * 60 + closeM;
+
+  if (closeMinutes > openMinutes) {
+    // Jadwal normal: buka & tutup di hari yang sama (misal 07:00 – 21:00)
+    return currentMinutes >= openMinutes && currentMinutes < closeMinutes;
+  } else {
+    // Jadwal melewati tengah malam (misal 22:00 – 02:00)
+    return currentMinutes >= openMinutes || currentMinutes < closeMinutes;
+  }
+}
+
+module.exports = { db, getSetting, setSetting, isStoreOpen };

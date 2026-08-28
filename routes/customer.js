@@ -3,7 +3,7 @@ const rateLimit = require('express-rate-limit');
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
-const { db, getSetting } = require('../db');
+const { db, getSetting, setSetting, isStoreOpen } = require('../db');
 
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
@@ -85,13 +85,16 @@ function nextOrderCode() {
 router.get('/settings/public', (req, res) => {
   res.json({
     store_name: getSetting('store_name', 'AsramaFood'),
-    is_open: getSetting('is_open', '1') === '1',
+    is_open: isStoreOpen(),
     delivery_fee: parseInt(getSetting('delivery_fee', '0'), 10),
     open_hours: getSetting('open_hours', ''),
     qris_image: getSetting('qris_image', ''),
     available_buildings: getSetting('available_buildings', 'Gedung 2'),
     allow_qris: getSetting('allow_qris', '1') === '1',
     allow_cod: getSetting('allow_cod', '1') === '1',
+    egg_price: parseInt(getSetting('egg_price', '3000'), 10),
+    drink_temp_cold_price: parseInt(getSetting('drink_temp_cold_price', '1000'), 10),
+    egg_stock: parseInt(getSetting('egg_stock', '0'), 10),
   });
 });
 
@@ -103,7 +106,7 @@ router.get('/categories', (req, res) => {
 router.get('/menu', (req, res) => {
   const { search = '', category = '' } = req.query;
   let sql = `
-    SELECT m.id, m.name, m.description, m.price, m.discount_price, m.is_discount, m.stock, m.is_available, m.image_emoji, m.image, m.sold_count,
+    SELECT m.id, m.name, m.description, m.price, m.discount_price, m.is_discount, m.stock, m.is_available, m.image_emoji, m.image, m.sold_count, m.allow_egg,
            c.id AS category_id, c.name AS category_name
     FROM menu_items m
     LEFT JOIN categories c ON c.id = m.category_id
@@ -129,7 +132,7 @@ router.get('/menu/terlaris', (req, res) => {
   const limit = Math.min(parseInt(req.query.limit, 10) || 6, 20);
   const rows = db
     .prepare(
-      `SELECT m.id, m.name, m.description, m.price, m.discount_price, m.is_discount, m.stock, m.is_available, m.image_emoji, m.image, m.sold_count,
+      `SELECT m.id, m.name, m.description, m.price, m.discount_price, m.is_discount, m.stock, m.is_available, m.image_emoji, m.image, m.sold_count, m.allow_egg,
               c.id AS category_id, c.name AS category_name
        FROM menu_items m
        LEFT JOIN categories c ON c.id = m.category_id
@@ -162,7 +165,7 @@ router.post('/orders', orderRateLimit, (req, res) => {
   if (payment_method === 'cod' && getSetting('allow_cod', '1') !== '1') {
     return res.status(400).json({ error: 'Metode pembayaran COD sedang tidak tersedia' });
   }
-  if (getSetting('is_open', '1') !== '1') {
+  if (!isStoreOpen()) {
     return res.status(400).json({ error: 'Toko sedang tutup, coba lagi nanti' });
   }
 
@@ -170,8 +173,13 @@ router.post('/orders', orderRateLimit, (req, res) => {
     let subtotal = 0;
     const resolvedItems = [];
 
+    const eggPrice = parseInt(getSetting('egg_price', '3000'), 10);
+    const drinkColdPrice = parseInt(getSetting('drink_temp_cold_price', '1000'), 10);
+    const currentEggStock = parseInt(getSetting('egg_stock', '0'), 10);
+    let totalEggsNeeded = 0; // akumulasi telur yang dibutuhkan seluruh item order ini
+
     for (const it of items) {
-      const menuItem = db.prepare('SELECT * FROM menu_items WHERE id = ? AND is_available = 1').get(it.menu_item_id);
+      const menuItem = db.prepare('SELECT m.*, c.name AS category_name FROM menu_items m LEFT JOIN categories c ON c.id = m.category_id WHERE m.id = ? AND m.is_available = 1').get(it.menu_item_id);
       if (!menuItem) throw new Error(`Menu tidak ditemukan atau tidak tersedia`);
       const qty = parseInt(it.qty, 10);
       if (!qty || qty < 1) throw new Error(`Jumlah tidak valid untuk ${menuItem.name}`);
@@ -179,9 +187,48 @@ router.post('/orders', orderRateLimit, (req, res) => {
 
       // Kalau menu sedang diskon, pelanggan dikenai harga diskon, bukan harga normal.
       const effectivePrice = menuItem.is_discount && menuItem.discount_price ? menuItem.discount_price : menuItem.price;
-      const lineSubtotal = effectivePrice * qty;
+
+      // --- Hitung harga opsi tambahan ---
+      const catName = (menuItem.category_name || '').toLowerCase();
+      const isMinuman = catName === 'minuman';
+
+      let addonPrice = 0;
+      const addonLabels = [];
+
+      // Opsi +Telur: hanya kalau item punya allow_egg = 1 (dikonfigurasi per menu di admin)
+      if (menuItem.allow_egg && it.add_egg) {
+        // Hitung kebutuhan telur (1 telur per qty item)
+        totalEggsNeeded += qty;
+        addonPrice += eggPrice;
+        addonLabels.push(`+Telur (+Rp ${eggPrice.toLocaleString('id-ID')})`);
+      }
+
+      // Opsi Panas/Dingin (hanya untuk minuman)
+      if (isMinuman && it.temp) {
+        if (it.temp === 'dingin') {
+          addonPrice += drinkColdPrice;
+          addonLabels.push(`Es/Dingin (+Rp ${drinkColdPrice.toLocaleString('id-ID')})`);
+        } else {
+          addonLabels.push('Panas');
+        }
+      }
+
+      const unitPrice = effectivePrice + addonPrice;
+      const lineSubtotal = unitPrice * qty;
       subtotal += lineSubtotal;
-      resolvedItems.push({ menuItem, qty, lineSubtotal, effectivePrice });
+
+      // Nama snapshot mencakup opsi yang dipilih agar admin bisa melihatnya
+      const nameSnapshot = addonLabels.length > 0
+        ? `${menuItem.name} [${addonLabels.join(', ')}]`
+        : menuItem.name;
+
+      resolvedItems.push({ menuItem, qty, lineSubtotal, effectivePrice: unitPrice, nameSnapshot });
+    }
+
+    // Validasi stok telur setelah semua item dihitung
+    if (totalEggsNeeded > 0 && currentEggStock < totalEggsNeeded) {
+      const sisaStok = currentEggStock <= 0 ? 'habis' : `sisa ${currentEggStock} butir`;
+      throw new Error(`Stok telur tidak cukup (${sisaStok}), tidak bisa tambah telur untuk semua item`);
     }
 
     const deliveryFee = method === 'antar' ? parseInt(getSetting('delivery_fee', '0'), 10) : 0;
@@ -203,10 +250,15 @@ router.post('/orders', orderRateLimit, (req, res) => {
     const decrementStock = db.prepare('UPDATE menu_items SET stock = stock - ? WHERE id = ?');
     const incrementSold = db.prepare('UPDATE menu_items SET sold_count = sold_count + ? WHERE id = ?');
 
-    for (const { menuItem, qty, lineSubtotal, effectivePrice } of resolvedItems) {
-      insertItem.run(orderId, menuItem.id, menuItem.name, effectivePrice, menuItem.cost_price || 0, qty, lineSubtotal);
+    for (const { menuItem, qty, lineSubtotal, effectivePrice, nameSnapshot } of resolvedItems) {
+      insertItem.run(orderId, menuItem.id, nameSnapshot, effectivePrice, menuItem.cost_price || 0, qty, lineSubtotal);
       decrementStock.run(qty, menuItem.id);
       incrementSold.run(qty, menuItem.id);
+    }
+
+    // Kurangi stok telur global sesuai total telur yang dipesan
+    if (totalEggsNeeded > 0) {
+      setSetting('egg_stock', Math.max(0, currentEggStock - totalEggsNeeded));
     }
 
     return { orderId, orderCode, total };

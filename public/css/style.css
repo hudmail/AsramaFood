@@ -1318,3 +1318,165 @@ textarea { font-family: inherit; resize: vertical; }
     border-width: 0 !important;
     transform: scaleY(0.9) !important;
 }
+
+/* ===== Option Modal ===== */
+.option-modal-card {
+    max-width: 420px;
+    width: 95%;
+}
+
+.option-item-preview {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 1rem;
+    background: var(--bg-body);
+    border-radius: var(--radius-md);
+    margin-bottom: 1.25rem;
+}
+
+.option-item-emoji {
+    width: 56px;
+    height: 56px;
+    border-radius: var(--radius-sm);
+    background: var(--primary-light);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.8rem;
+    flex-shrink: 0;
+}
+
+.option-item-img {
+    width: 56px;
+    height: 56px;
+    border-radius: var(--radius-sm);
+    object-fit: cover;
+    flex-shrink: 0;
+}
+
+.option-item-name {
+    font-weight: 700;
+    font-size: 1rem;
+    color: var(--text-title);
+    margin-bottom: 0.2rem;
+}
+
+.option-item-price {
+    font-size: 0.9rem;
+    color: var(--primary);
+    font-weight: 600;
+}
+
+.option-section {
+    margin-bottom: 1.25rem;
+}
+
+.option-label {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    margin-bottom: 0.65rem;
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+}
+
+.option-price-tag {
+    background: var(--primary-light);
+    color: var(--primary);
+    font-size: 0.78rem;
+    font-weight: 700;
+    padding: 0.15rem 0.5rem;
+    border-radius: var(--radius-full);
+    margin-left: auto;
+    text-transform: none;
+    letter-spacing: 0;
+}
+
+.option-toggle-group {
+    display: flex;
+    gap: 0.6rem;
+    flex-wrap: wrap;
+}
+
+.option-toggle-btn {
+    flex: 1;
+    min-width: 100px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.4rem;
+    padding: 0.7rem 1rem;
+    border-radius: var(--radius-md);
+    border: 2px solid var(--border-color);
+    background: var(--bg-card);
+    color: var(--text-body);
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: var(--transition-fast);
+    text-align: center;
+}
+
+.option-toggle-btn:hover {
+    border-color: var(--primary);
+    color: var(--primary);
+    background: var(--primary-light);
+}
+
+.option-toggle-btn.active {
+    border-color: var(--primary);
+    background: var(--primary);
+    color: #fff;
+}
+
+.option-toggle-btn.active .option-price-tag {
+    background: rgba(255,255,255,0.25);
+    color: #fff;
+}
+
+.option-modal-footer {
+    border-top: 1px solid var(--border-color);
+    padding-top: 1rem;
+    margin-top: 0.25rem;
+}
+
+.option-total-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.85rem;
+    font-weight: 600;
+    color: var(--text-body);
+}
+
+.option-total-price {
+    font-size: 1.2rem;
+    font-weight: 800;
+    color: var(--primary);
+}
+
+/* Label opsi di item keranjang */
+.cart-item-option {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    font-size: 0.72rem;
+    font-weight: 600;
+    color: var(--primary);
+    background: var(--primary-light);
+    padding: 0.15rem 0.5rem;
+    border-radius: var(--radius-full);
+    margin-bottom: 0.25rem;
+}
+
+/* Tombol opsi disabled (stok habis) */
+.option-toggle-btn.disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+    pointer-events: none;
+    border-style: dashed;
+}
