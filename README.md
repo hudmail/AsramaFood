@@ -1,139 +1,235 @@
-# 🍽️ AsramaFood (Simple)
+# 🍽️ AsramaFood
 
-Versi sederhana dari AsramaFood — aplikasi pemesanan makanan/minuman untuk asrama.
-Satu aplikasi Node.js, satu file database SQLite, **tanpa** build step, tanpa container terpisah untuk database/nginx. Tinggal jalan.
+**Aplikasi pemesanan makanan & minuman untuk asrama** — satu aplikasi Node.js, satu file database SQLite, tanpa build step. Tinggal jalan.
 
-## Kenapa versi ini beda dari sebelumnya?
+Penghuni asrama memesan lewat halaman web, memilih antar ke kamar atau ambil sendiri, membayar dengan QRIS (upload bukti transfer) atau COD, lalu melacak status pesanan pakai kode unik. Admin mengelola pesanan, menu, dan pengaturan toko lewat dashboard terpisah.
 
-Versi lama pakai Next.js + NestJS + PostgreSQL + Nginx (4 service terpisah) — powerful tapi ribet untuk dipakai di lingkungan asrama yang kecil. Versi ini:
+> ⚠️ Butuh **Node.js 22.13+** (pakai `node:sqlite` bawaan). Cek: `node -v`
 
-- 1 aplikasi Node.js (Express), HTML/JS biasa di frontend (tanpa build/compile)
-- 1 file database SQLite, pakai modul **bawaan Node.js** (`node:sqlite`) — bukan package native seperti `better-sqlite3`, jadi **tidak butuh Python/Visual Studio Build Tools** sama sekali, aman di Windows manapun
-- Bisa jalan langsung dengan `node server.js`, atau 1 container Docker
-- Cocok untuk Windows (Docker Desktop), CasaOS, atau VPS kecil
+---
 
-> ⚠️ Butuh **Node.js versi 22.13 atau lebih baru** (karena pakai `node:sqlite`). Cek versi kamu dengan `node -v`. Kalau masih Node 18/20, update dulu lewat [nodejs.org](https://nodejs.org) atau `nvm install 22`.
+## ✨ Fitur
 
-Fitur inti yang tersedia: menu (kategori, cari, stok), keranjang & checkout, pembayaran **QRIS statis + konfirmasi manual** (pelanggan scan QRIS lalu upload bukti transfer, admin konfirmasi di dashboard), kode pesanan unik + lacak status, dashboard admin, kelola pesanan (ubah status, batalkan), CRUD menu & kategori, pengaturan toko (buka/tutup, ongkir, jam buka, gambar QRIS).
+### 🛒 Pelanggan
+- **Menu** — kategori, pencarian, filter harga, stok real-time
+- **Menu terlaris** — otomatis berdasarkan jumlah terjual
+- **Keranjang & checkout** — pilih antar ke kamar / ambil sendiri
+- **Opsi makanan** — tambah telur (+Telur) per menu yang diizinkan admin
+- **Opsi minuman** — pilih Panas / Es (Dingin) per menu yang diizinkan admin, dengan stok es batu
+- **Diskon** — harga coret + badge diskon otomatis
+- **Pembayaran** — QRIS (scan & upload bukti) atau COD (bayar di tempat)
+- **Tracking** — lacak status pesanan real-time dengan kode unik
 
-Belum ada (menyusul kalau dibutuhkan): POS walk-in, laporan/export CSV, manajemen banyak user.
+### 🔧 Admin (Owner & Kasir)
+- **Dashboard pesanan** — kelola status, konfirmasi pembayaran, lihat bukti transfer
+- **CRUD menu** — kategori, harga pokok/jual, diskon, stok, foto, opsi telur & es batu per item
+- **Pengaturan toko** — nama toko, ongkir, jam buka, gedung, metode pembayaran
+- **Jadwal otomatis** — buka/tutup toko otomatis sesuai jam (termasuk jadwal lewat tengah malam)
+- **Stok telur & es batu** — diatur global, otomatis berkurang saat ada pesanan
+- **Laporan** — export Excel & PDF per tanggal
+- **Auto-update** — cek & instal pembaruan dari GitHub langsung dari panel admin *(hanya Owner)*
 
-## 🚀 Menjalankan dengan Docker (disarankan — Windows / CasaOS / VPS)
+### 🏗️ Teknis
+- 1 aplikasi Express.js, frontend HTML/CSS/JS polos (tanpa framework/build)
+- SQLite bawaan Node.js (`node:sqlite`) — **tidak butuh** Python / Visual Studio Build Tools
+- Migrasi database otomatis — kolom/tabel baru ditambahkan saat server start
+- Docker ready (1 container)
+- Kode pesanan acak (anti-iterasi) — format `AF-YYYYMMDD-XXXXXX`
 
-### Windows (Docker Desktop) atau VPS (Docker + Docker Compose)
+---
 
-```bash
-# 1. Copy dan isi environment
-cp .env.example .env
-# edit .env — isi SESSION_SECRET dan ADMIN_DEFAULT_PASSWORD
+## 🚀 Quick Start
 
-# 2. Build & jalankan
-docker compose up -d --build
-
-# 3. Buka di browser
-# Customer : http://localhost:3000
-# Admin    : http://localhost:3000/admin/login.html
-```
-
-Login admin default: `owner` / `kasir`, password sesuai `ADMIN_DEFAULT_PASSWORD` di `.env` (default: `ganti-password-ini`). **Segera login dan ganti password lewat menu Pengaturan / database setelah deploy.**
-
-**Setelah deploy, jangan lupa upload gambar QRIS kamu** di menu Admin → Pengaturan → QRIS Pembayaran, supaya pelanggan bisa langsung bayar.
-
-Data (SQLite) tersimpan di folder `./data` di host — aman walau container di-restart/rebuild.
-
-### CasaOS
-
-1. Push folder ini ke sebuah Git repo (GitHub/Gitea), atau upload langsung ke VPS/NAS.
-2. Di CasaOS App Store → **Install a Custom App** → gunakan `docker-compose.yml` di repo ini (atau import lewat menu "Docker Compose").
-3. Set environment variable `SESSION_SECRET` dan `ADMIN_DEFAULT_PASSWORD` di panel CasaOS.
-4. Mapping port `3000` ke port yang kamu mau, mapping volume `./data` → `/app/data`.
-5. Jalankan, lalu akses lewat IP CasaOS kamu, misal `http://192.168.1.x:3000`.
-
-### VPS (Ubuntu, tanpa Docker Desktop)
+### Tanpa Docker
 
 ```bash
-sudo apt update && sudo apt install -y docker.io docker-compose-plugin
-git clone <repo-kamu> asrama-food && cd asrama-food
-cp .env.example .env && nano .env
-docker compose up -d --build
-```
-
-Kalau mau pakai domain + HTTPS, taruh reverse proxy simpel di depannya (Caddy paling gampang — otomatis SSL):
-
-```bash
-# contoh Caddyfile
-domain-kamu.com {
-    reverse_proxy localhost:3000
-}
-```
-
-## 🖥️ Menjalankan tanpa Docker (langsung Node.js)
-
-Kalau di Windows kamu sudah ada Node.js (>=18) terpasang dan tidak mau pakai Docker sama sekali:
-
-```bash
+# 1. Install dependencies
 npm install
-copy .env.example .env    # Windows
-# atau: cp .env.example .env   (Mac/Linux)
-# edit .env sesuai kebutuhan
 
-npm start
+# 2. Buat file .env
+cp .env.example .env
+# Edit .env — isi SESSION_SECRET dan ADMIN_DEFAULT_PASSWORD
+
+# 3. Jalankan
+node server.js
 ```
 
-Buka `http://localhost:3000`. Database SQLite otomatis dibuat di folder `data/` saat pertama kali dijalankan — tidak perlu migrasi/seed manual.
+### Dengan Docker
+
+```bash
+cp .env.example .env
+# Edit .env
+
+docker compose up -d --build
+```
+
+Buka di browser:
+- **Pelanggan:** http://localhost:3000
+- **Admin:** http://localhost:3000/admin/login.html
+
+Login default: `owner` / `kasir`, password sesuai `ADMIN_DEFAULT_PASSWORD` di `.env`.
+
+---
 
 ## 📂 Struktur Proyek
 
 ```
 asrama-food-simple/
-├── server.js          # entry point Express
-├── db.js              # setup SQLite + auto-seed data awal
-├── middleware/auth.js  # cek login admin
+├── server.js              # Entry point Express + CSP + static
+├── db.js                  # SQLite setup, migrasi otomatis, seed data awal
+├── VERSION                # SHA commit terinstal (untuk fitur auto-update)
+├── middleware/
+│   └── auth.js            # Middleware login admin (session, role)
 ├── routes/
-│   ├── customer.js     # API publik: menu, checkout, tracking
-│   └── admin.js        # API admin: login, pesanan, menu, pengaturan
-├── public/              # semua frontend (HTML/CSS/JS polos, tanpa build)
-│   ├── index.html        # halaman pesan (customer)
-│   ├── track.html         # lacak pesanan
-│   └── admin/              # login, dashboard pesanan, kelola menu, pengaturan
-├── data/                 # file database SQLite (dibuat otomatis)
+│   ├── customer.js        # API publik: menu, kategori, order, tracking, bukti bayar
+│   └── admin.js           # API admin: login, pesanan, menu, settings, laporan, update
+├── public/                # Frontend (HTML/CSS/JS polos, tanpa build)
+│   ├── index.html         # Halaman pesan makanan (pelanggan)
+│   ├── track.html         # Halaman lacak pesanan
+│   ├── favicon.svg
+│   ├── css/
+│   │   └── style.css      # Semua styling (dark mode, responsive)
+│   ├── js/
+│   │   ├── app.js         # Logika frontend pelanggan
+│   │   ├── track.js       # Logika tracking pesanan
+│   │   └── theme.js       # Toggle dark/light mode
+│   └── admin/
+│       ├── login.html     # Halaman login admin
+│       ├── index.html     # Dashboard pesanan
+│       ├── menu.html      # Kelola menu & kategori
+│       ├── reports.html   # Laporan Excel/PDF
+│       ├── settings.html  # Pengaturan toko + panel update
+│       └── js/
+│           ├── dashboard.js
+│           ├── menu.js
+│           ├── reports.js
+│           └── settings.js
+├── data/                  # Database SQLite (auto-created, di-gitignore)
+├── .env.example
 ├── Dockerfile
-└── docker-compose.yml
+├── docker-compose.yml
+├── DEPLOY.md              # Panduan deploy & upgrade lengkap
+└── package.json
 ```
+
+---
 
 ## 🔧 Environment Variables
 
 | Variabel | Default | Keterangan |
 |---|---|---|
 | `PORT` | `3000` | Port aplikasi |
-| `SESSION_SECRET` | - | Wajib diganti untuk production, string acak panjang |
-| `ADMIN_DEFAULT_PASSWORD` | `ganti-password-ini` | Password akun `owner`/`kasir` saat pertama kali seed |
+| `SESSION_SECRET` | — | **Wajib diganti** untuk production (string acak ≥32 karakter) |
+| `ADMIN_DEFAULT_PASSWORD` | `ganti-password-ini` | Password awal akun `owner` & `kasir` |
 | `DATA_DIR` | `./data` | Lokasi file database SQLite |
 
-> Catatan: saat dijalankan kamu akan lihat `ExperimentalWarning: SQLite is an experimental feature...` di log — ini normal, cuma peringatan dari Node.js, bukan error. Fiturnya sudah stabil dipakai sejak Node 22.13.
-
-## 💾 Backup
-
-Karena database cuma 1 file SQLite, backup tinggal copy filenya:
-
 ```bash
-cp data/asrama-food.sqlite backup-$(date +%Y%m%d).sqlite
+# Generate SESSION_SECRET yang aman:
+node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
 ```
 
-## 🔄 Kode Pesanan
+---
 
-Format tetap sama seperti versi sebelumnya: `AF-YYYYMMDD-XXXX`, reset urutan tiap hari.
+## 📝 Alur Pesanan
 
-## 📝 Alur Status Pesanan
+### Status Pesanan
 
-`pending` → `diproses` → `siap` → `diantar` (jika diantar) / `selesai` (jika ambil sendiri)
+```
+pending → diproses → siap → diantar → selesai     (antar ke kamar)
+pending → diproses → siap → selesai                (ambil sendiri)
+```
 
-Bisa dibatalkan (`dibatalkan`) di status apapun sebelum selesai — stok otomatis dikembalikan.
+Bisa `dibatalkan` di status apapun sebelum selesai — stok otomatis dikembalikan.
 
-## 💳 Alur Pembayaran QRIS
+### Alur Pembayaran QRIS
 
-Pembayaran terpisah dari status pesanan, jalan paralel:
+```
+menunggu_pembayaran → pelanggan upload bukti → menunggu_konfirmasi → admin cek → dibayar / ditolak
+```
 
-`menunggu_pembayaran` → pelanggan scan QRIS & upload bukti transfer → `menunggu_konfirmasi` → admin cek bukti di dashboard → `dibayar` (atau `ditolak` jika bukti tidak valid, pelanggan bisa upload ulang)
+QRIS yang ditampilkan adalah **QRIS statis** yang di-upload admin di Pengaturan. Konfirmasi dilakukan manual oleh admin setelah cek mutasi.
 
-QRIS yang ditampilkan ke pelanggan adalah **QRIS statis** (satu gambar untuk semua nominal) yang di-upload admin lewat menu Pengaturan — bukan QRIS dinamis dari payment gateway, jadi konfirmasi pembayaran dilakukan manual oleh admin/kasir setelah mengecek mutasi rekening/e-wallet.
+### Alur Pembayaran COD
+
+```
+menunggu_pembayaran → (admin ubah ke dibayar saat pesanan diantar) → dibayar
+```
+
+COD hanya tersedia untuk pesanan **antar ke kamar**.
+
+---
+
+## 🥚 Opsi Tambahan Per Menu
+
+| Opsi | Pengaturan di Admin | Pengaruh |
+|------|---------------------|----------|
+| **+Telur** | Centang "Izinkan opsi +Telur" di editor menu | Pelanggan bisa pilih tambah telur, stok telur global berkurang |
+| **+Es Batu** | Centang "Izinkan opsi +Es Batu" di editor menu | Pelanggan bisa pilih Panas/Dingin, stok es batu global berkurang |
+
+- Harga tambah telur & surcharge es diatur di **Pengaturan → Harga Opsi Tambahan**
+- Stok telur & es batu diatur di **Pengaturan → Stok Telur / Stok Es Batu**
+- Jika stok habis, opsi otomatis di-disable di halaman pelanggan
+
+---
+
+## 🔄 Auto-Update dari GitHub
+
+Owner bisa mengecek & menginstal pembaruan langsung dari panel admin:
+
+1. Login sebagai **Owner** → buka **Pengaturan**
+2. Scroll ke panel **Pembaruan Aplikasi**
+3. Klik **Cek Pembaruan** → info versi terbaru dari GitHub
+4. Jika ada → klik **Instal Pembaruan** → konfirmasi → server restart otomatis
+
+**Yang aman saat update:**
+- ✅ Database (folder `data/`)
+- ✅ Gambar upload (folder `public/uploads/`)
+- ✅ File konfigurasi (`.env`)
+
+> ⚠️ Gunakan **PM2** atau **Docker** di production agar server restart otomatis setelah update. Jika pakai `node server.js` biasa, jalankan ulang manual.
+
+---
+
+## 💾 Backup & Restore
+
+```bash
+# Backup database + uploads
+tar -czf backup-$(date +%Y%m%d_%H%M).tar.gz ./data ./public/uploads
+
+# Restore
+tar -xzf backup-20261201_1200.tar.gz
+```
+
+Database hanya 1 file SQLite — backup tinggal copy `data/asrama-food.sqlite`.
+
+---
+
+## 🛠️ Troubleshooting
+
+| Masalah | Solusi |
+|---------|--------|
+| `ExperimentalWarning: SQLite...` | Normal — bukan error, hanya peringatan Node.js |
+| Port 3000 sudah dipakai | Ubah `PORT` di `.env` |
+| File `.env` belum ada | `cp .env.example .env` |
+| CSS/gambar tidak muncul (akses via IP) | Sudah dihandle — `upgradeInsecureRequests` dimatikan di CSP |
+| Database corrupt | Hapus `data/asrama-food.sqlite`, jalankan ulang (data hilang!) |
+
+---
+
+## 📦 Tech Stack
+
+| Layer | Teknologi |
+|-------|-----------|
+| **Backend** | Node.js 22+, Express 4, `node:sqlite` |
+| **Frontend** | HTML, CSS, JavaScript (vanilla — tanpa framework) |
+| **Database** | SQLite (WAL mode) |
+| **Auth** | `cookie-session` + `bcryptjs` |
+| **Security** | `helmet` (CSP), `express-rate-limit`, file upload validation |
+| **Reports** | `exceljs` (Excel), `pdfkit` (PDF) |
+| **Deploy** | Docker / PM2 / langsung `node server.js` |
+
+---
+
+## 📄 Lisensi
+
+Dibuat oleh **HudMail** ([@mail.huda](https://instagram.com/mail.huda))

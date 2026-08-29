@@ -107,14 +107,13 @@ window.addToCart = (id) => {
   if (!settings.is_open) return showToast('Toko sedang tutup');
   const item = allMenu.find(x => x.id === id);
   if (!item) return;
-  const catName = (item.category_name || '').toLowerCase();
   const hasEgg = !!item.allow_egg;          // per-item config dari admin
-  const isMinuman = catName === 'minuman';
+  const hasIce = !!item.allow_ice;          // per-item config dari admin (minuman)
 
-  if (hasEgg || isMinuman) {
+  if (hasEgg || hasIce) {
     // Tampilkan modal opsi
     _optionPendingItem = item;
-    renderOptionModal(item, hasEgg, isMinuman);
+    renderOptionModal(item, hasEgg, hasIce);
     $('option-modal').classList.add('open');
   } else {
     // Tidak ada opsi → langsung masuk keranjang
@@ -122,7 +121,7 @@ window.addToCart = (id) => {
   }
 };
 
-function renderOptionModal(item, hasEgg, isMinuman) {
+function renderOptionModal(item, hasEgg, hasIce) {
   const eggPrice = settings.egg_price || 3000;
   const coldPrice = settings.drink_temp_cold_price || 1000;
 
@@ -154,16 +153,21 @@ function renderOptionModal(item, hasEgg, isMinuman) {
     </div>`;
   }
 
-  if (isMinuman) {
+  if (hasIce) {
+    const iceStockLeft = settings.ice_stock ?? 0;
+    const iceOut = iceStockLeft <= 0;
+    const iceStockBadge = iceOut
+      ? `<span class="option-price-tag" style="background:#fee2e2;color:#b91c1c;border-color:#fca5a5;">🧊 Stok habis</span>`
+      : `<span class="option-price-tag" style="background:#d1fae5;color:#065f46;">🧊 Sisa ${iceStockLeft}</span>`;
     html += `
     <div class="option-section">
-      <div class="option-label"><i class="fa-solid fa-temperature-half"></i> Suhu Minuman</div>
+      <div class="option-label"><i class="fa-solid fa-temperature-half"></i> Suhu Minuman ${iceStockBadge}</div>
       <div class="option-toggle-group">
         <label class="option-toggle-btn active" id="opt-temp-panas">
           <input type="radio" name="opt_temp" value="panas" checked hidden> <i class="fa-solid fa-fire"></i> Panas
         </label>
-        <label class="option-toggle-btn" id="opt-temp-dingin">
-          <input type="radio" name="opt_temp" value="dingin" hidden> <i class="fa-solid fa-snowflake"></i> Es/Dingin <span class="option-price-tag">+${money(coldPrice)}</span>
+        <label class="option-toggle-btn${iceOut ? ' disabled' : ''}" id="opt-temp-dingin" ${iceOut ? 'aria-disabled="true" title="Stok es batu habis"' : ''}>
+          <input type="radio" name="opt_temp" value="dingin" hidden ${iceOut ? 'disabled' : ''}> <i class="fa-solid fa-snowflake"></i> Es/Dingin <span class="option-price-tag">+${money(coldPrice)}</span>
         </label>
       </div>
     </div>`;
@@ -183,14 +187,14 @@ function renderOptionModal(item, hasEgg, isMinuman) {
       input.checked = true;
       btn.classList.add('active');
       // Update preview harga
-      updateOptionPreviewPrice(item, hasEgg, isMinuman);
+      updateOptionPreviewPrice(item, hasEgg, hasIce);
     };
   });
 
-  updateOptionPreviewPrice(item, hasEgg, isMinuman);
+  updateOptionPreviewPrice(item, hasEgg, hasIce);
 }
 
-function updateOptionPreviewPrice(item, hasEgg, isMinuman) {
+function updateOptionPreviewPrice(item, hasEgg, hasIce) {
   const eggPrice = settings.egg_price || 3000;
   const coldPrice = settings.drink_temp_cold_price || 1000;
   let total = effectivePrice(item);
@@ -199,9 +203,12 @@ function updateOptionPreviewPrice(item, hasEgg, isMinuman) {
     const checkedEgg = document.querySelector('#option-modal input[name="opt_egg"]:checked');
     if (checkedEgg && !checkedEgg.disabled && checkedEgg.value === 'yes') total += eggPrice;
   }
-  if (isMinuman) {
-    const temp = document.querySelector('#option-modal input[name="opt_temp"]:checked')?.value;
-    if (temp === 'dingin') total += coldPrice;
+  if (hasIce) {
+    // Hanya hitung harga +Es kalau stok masih ada dan radio tidak disabled
+    if ((settings.ice_stock ?? 0) > 0) {
+      const temp = document.querySelector('#option-modal input[name="opt_temp"]:checked');
+      if (temp && !temp.disabled && temp.value === 'dingin') total += coldPrice;
+    }
   }
   const priceEl = $('option-modal-total-price');
   if (priceEl) priceEl.textContent = money(total);
@@ -210,9 +217,8 @@ function updateOptionPreviewPrice(item, hasEgg, isMinuman) {
 function confirmOptionModal() {
   const item = _optionPendingItem;
   if (!item) return;
-  const catName = (item.category_name || '').toLowerCase();
   const hasEgg = !!item.allow_egg;
-  const isMinuman = catName === 'minuman';
+  const hasIce = !!item.allow_ice;
 
   const options = {};
   // +Telur: hanya kalau allow_egg=true DAN stok > 0 DAN radio tidak disabled
@@ -220,9 +226,19 @@ function confirmOptionModal() {
     const checkedEgg = document.querySelector('#option-modal input[name="opt_egg"]:checked');
     if (checkedEgg && !checkedEgg.disabled && checkedEgg.value === 'yes') options.add_egg = true;
   }
-  if (isMinuman) {
-    const val = document.querySelector('#option-modal input[name="opt_temp"]:checked')?.value;
-    if (val) options.temp = val;
+  if (hasIce) {
+    // +Es: hanya kalau stok > 0 DAN radio tidak disabled
+    if ((settings.ice_stock ?? 0) > 0) {
+      const checkedTemp = document.querySelector('#option-modal input[name="opt_temp"]:checked');
+      if (checkedTemp && !checkedTemp.disabled) {
+        options.temp = checkedTemp.value;
+      } else {
+        options.temp = 'panas';
+      }
+    } else {
+      // stok es habis → paksa panas
+      options.temp = 'panas';
+    }
   }
 
   $('option-modal').classList.remove('open');

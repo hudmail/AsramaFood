@@ -182,6 +182,7 @@ function openEditor(item) {
 
     document.getElementById('editAvailable').checked = !!item.is_available;
     document.getElementById('editAllowEgg').checked = !!item.allow_egg;
+    document.getElementById('editAllowIce').checked = !!item.allow_ice;
   } else {
     document.getElementById('editorTitle').textContent = 'Tambah Menu';
     document.getElementById('editId').value = '';
@@ -200,6 +201,7 @@ function openEditor(item) {
 
     document.getElementById('editAvailable').checked = true;
     document.getElementById('editAllowEgg').checked = false;
+    document.getElementById('editAllowIce').checked = false;
   }
 }
 
@@ -257,6 +259,7 @@ async function saveMenu() {
   formData.append('is_discount', isDiscount ? 1 : 0);
   if (isDiscount) formData.append('discount_price', discountPrice);
   formData.append('allow_egg', document.getElementById('editAllowEgg').checked ? 1 : 0);
+  formData.append('allow_ice', document.getElementById('editAllowIce').checked ? 1 : 0);
 
   const fileInput = document.getElementById('editImageFile');
   if (fileInput.files[0]) {

@@ -224,6 +224,7 @@ router.post('/menu', requireAuth, uploadOne('image'), (req, res) => {
   const is_discount = toBool(body.is_discount);
   const discount_price = toIntOrNull(body.discount_price);
   const allow_egg = toBool(body.allow_egg);
+  const allow_ice = toBool(body.allow_ice);
   // image WAJIB null (bukan undefined) kalau tidak ada file/nilai - node:sqlite
   // menolak bind parameter undefined dan bikin server crash (500).
   const image = req.file ? `/uploads/${req.file.filename}` : (body.image || null);
@@ -238,10 +239,10 @@ router.post('/menu', requireAuth, uploadOne('image'), (req, res) => {
 
   const result = db
     .prepare(
-      `INSERT INTO menu_items (category_id, name, description, price, cost_price, stock, is_available, image, discount_price, is_discount, allow_egg)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+      `INSERT INTO menu_items (category_id, name, description, price, cost_price, stock, is_available, image, discount_price, is_discount, allow_egg, allow_ice)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
     )
-    .run(category_id, name, description, price, cost_price, stock, is_available ? 1 : 0, image, is_discount ? discount_price : null, is_discount ? 1 : 0, allow_egg ? 1 : 0);
+    .run(category_id, name, description, price, cost_price, stock, is_available ? 1 : 0, image, is_discount ? discount_price : null, is_discount ? 1 : 0, allow_egg ? 1 : 0, allow_ice ? 1 : 0);
   res.status(201).json({ id: result.lastInsertRowid });
 });
 
@@ -260,6 +261,7 @@ router.put('/menu/:id', requireAuth, uploadOne('image'), (req, res) => {
   const is_discount = body.is_discount !== undefined ? toBool(body.is_discount) : !!existing.is_discount;
   const discount_price = body.discount_price !== undefined ? toIntOrNull(body.discount_price) : existing.discount_price;
   const allow_egg = body.allow_egg !== undefined ? toBool(body.allow_egg) : !!existing.allow_egg;
+  const allow_ice = body.allow_ice !== undefined ? toBool(body.allow_ice) : !!existing.allow_ice;
 
   const image = req.file ? `/uploads/${req.file.filename}` : (body.image !== undefined ? body.image || null : existing.image);
   if (req.file && existing.image && existing.image !== image) deleteUploadedFile(existing.image);
@@ -273,9 +275,9 @@ router.put('/menu/:id', requireAuth, uploadOne('image'), (req, res) => {
   }
 
   db.prepare(
-    `UPDATE menu_items SET name = ?, description = ?, price = ?, cost_price = ?, stock = ?, category_id = ?, image = ?, is_available = ?, discount_price = ?, is_discount = ?, allow_egg = ?
+    `UPDATE menu_items SET name = ?, description = ?, price = ?, cost_price = ?, stock = ?, category_id = ?, image = ?, is_available = ?, discount_price = ?, is_discount = ?, allow_egg = ?, allow_ice = ?
      WHERE id = ?`
-  ).run(name, description, price, cost_price, stock, category_id, image, is_available ? 1 : 0, is_discount ? discount_price : null, is_discount ? 1 : 0, allow_egg ? 1 : 0, req.params.id);
+  ).run(name, description, price, cost_price, stock, category_id, image, is_available ? 1 : 0, is_discount ? discount_price : null, is_discount ? 1 : 0, allow_egg ? 1 : 0, allow_ice ? 1 : 0, req.params.id);
 
   res.json({ ok: true });
 });
@@ -324,6 +326,7 @@ router.get('/settings', requireAuth, (req, res) => {
     egg_price: parseInt(getSetting('egg_price', '3000'), 10),
     drink_temp_cold_price: parseInt(getSetting('drink_temp_cold_price', '1000'), 10),
     egg_stock: parseInt(getSetting('egg_stock', '0'), 10),
+    ice_stock: parseInt(getSetting('ice_stock', '0'), 10),
     auto_schedule: getSetting('auto_schedule', '0') === '1',
     schedule_open: getSetting('schedule_open', '07:00'),
     schedule_close: getSetting('schedule_close', '21:00'),
@@ -333,7 +336,7 @@ router.get('/settings', requireAuth, (req, res) => {
 // Pengaturan toko (jam buka, ongkir, metode pembayaran, gambar QRIS, dll)
 // adalah keputusan level pemilik usaha -> dibatasi untuk owner saja.
 router.put('/settings', requireOwner, uploadOne('qris_image'), (req, res) => {
-  const { store_name, is_open, delivery_fee, open_hours, available_buildings, allow_qris, allow_cod, egg_price, drink_temp_cold_price, egg_stock, auto_schedule, schedule_open, schedule_close } = req.body || {};
+  const { store_name, is_open, delivery_fee, open_hours, available_buildings, allow_qris, allow_cod, egg_price, drink_temp_cold_price, egg_stock, ice_stock, auto_schedule, schedule_open, schedule_close } = req.body || {};
   const qris_image = req.file ? `/uploads/${req.file.filename}` : req.body.qris_image;
   if (req.file) {
     const oldQris = getSetting('qris_image', '');
@@ -350,6 +353,7 @@ router.put('/settings', requireOwner, uploadOne('qris_image'), (req, res) => {
   if (egg_price !== undefined) setSetting('egg_price', parseInt(egg_price, 10) || 0);
   if (drink_temp_cold_price !== undefined) setSetting('drink_temp_cold_price', parseInt(drink_temp_cold_price, 10) || 0);
   if (egg_stock !== undefined) setSetting('egg_stock', Math.max(0, parseInt(egg_stock, 10) || 0));
+  if (ice_stock !== undefined) setSetting('ice_stock', Math.max(0, parseInt(ice_stock, 10) || 0));
   if (auto_schedule !== undefined) setSetting('auto_schedule', toBool(auto_schedule) ? '1' : '0');
   if (schedule_open !== undefined && /^\d{2}:\d{2}$/.test(schedule_open)) setSetting('schedule_open', schedule_open);
   if (schedule_close !== undefined && /^\d{2}:\d{2}$/.test(schedule_close)) setSetting('schedule_close', schedule_close);
@@ -475,6 +479,221 @@ router.get('/reports/pdf', requireAuth, (req, res) => {
   doc.text('Rp ' + totalProfit.toLocaleString('id-ID'), 150, y);
 
   doc.end();
+});
+
+// ---------------------------------------------------------------------------
+// --- Update dari GitHub ----------------------------------------------------
+// ---------------------------------------------------------------------------
+
+const GITHUB_REPO = 'hudmail/AsramaFood';
+const GITHUB_BRANCH = 'main';
+const VERSION_FILE = path.join(__dirname, '..', 'VERSION');
+const APP_ROOT = path.join(__dirname, '..');
+
+// File/folder yang TIDAK boleh ditimpa saat update (data pengguna tetap aman)
+const PRESERVE_PATHS = [
+  'data',
+  'public/uploads',
+  '.env',
+  'node_modules',
+  'VERSION',       // ditulis terpisah setelah update selesai
+  '.git',
+];
+
+function readCurrentVersion() {
+  try {
+    return fs.readFileSync(VERSION_FILE, 'utf-8').trim();
+  } catch {
+    return 'unknown';
+  }
+}
+
+// Cek update: bandingkan SHA lokal vs SHA terbaru di GitHub
+router.get('/update/check', requireOwner, async (req, res) => {
+  try {
+    const currentVersion = readCurrentVersion();
+
+    const response = await fetch(
+      `https://api.github.com/repos/${GITHUB_REPO}/commits/${GITHUB_BRANCH}`,
+      {
+        headers: {
+          Accept: 'application/vnd.github.v3+json',
+          'User-Agent': 'AsramaFood-Updater',
+        },
+      }
+    );
+
+    if (!response.ok) {
+      const errText = await response.text();
+      return res.status(502).json({ error: `Gagal mengambil info dari GitHub: ${response.status} — ${errText}` });
+    }
+
+    const data = await response.json();
+    const latestSha = data.sha;
+    const latestMessage = data.commit?.message || '';
+    const latestDate = data.commit?.committer?.date || data.commit?.author?.date || '';
+
+    res.json({
+      current_version: currentVersion,
+      latest_sha: latestSha,
+      latest_message: latestMessage,
+      latest_date: latestDate,
+      has_update: currentVersion !== latestSha,
+    });
+  } catch (err) {
+    console.error('[update/check] Error:', err);
+    res.status(500).json({ error: 'Gagal mengecek pembaruan: ' + (err.message || 'Unknown error') });
+  }
+});
+
+// Apply update: download tarball, extract, overwrite files, restart
+router.post('/update/apply', requireOwner, async (req, res) => {
+  const { execSync } = require('child_process');
+
+  try {
+    // 1. Ambil SHA terbaru dulu
+    const checkResp = await fetch(
+      `https://api.github.com/repos/${GITHUB_REPO}/commits/${GITHUB_BRANCH}`,
+      {
+        headers: {
+          Accept: 'application/vnd.github.v3+json',
+          'User-Agent': 'AsramaFood-Updater',
+        },
+      }
+    );
+    if (!checkResp.ok) {
+      return res.status(502).json({ error: `Gagal mengambil info dari GitHub: ${checkResp.status}` });
+    }
+    const commitData = await checkResp.json();
+    const latestSha = commitData.sha;
+
+    const currentVersion = readCurrentVersion();
+    if (currentVersion === latestSha) {
+      return res.json({ ok: true, message: 'Sudah versi terbaru, tidak perlu update.' });
+    }
+
+    // 2. Buat backup sederhana (VERSION lama + timestamp)
+    const backupDir = path.join(APP_ROOT, 'data', 'backups');
+    if (!fs.existsSync(backupDir)) fs.mkdirSync(backupDir, { recursive: true });
+    const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+    const backupFile = path.join(backupDir, `pre-update-${timestamp}.txt`);
+    fs.writeFileSync(backupFile, `Update from ${currentVersion} to ${latestSha}\nTimestamp: ${new Date().toISOString()}\n`);
+
+    // 3. Download tarball
+    const tarballUrl = `https://api.github.com/repos/${GITHUB_REPO}/tarball/${GITHUB_BRANCH}`;
+    const tarResp = await fetch(tarballUrl, {
+      headers: {
+        Accept: 'application/vnd.github.v3+json',
+        'User-Agent': 'AsramaFood-Updater',
+      },
+      redirect: 'follow',
+    });
+
+    if (!tarResp.ok) {
+      return res.status(502).json({ error: `Gagal mengunduh update: ${tarResp.status}` });
+    }
+
+    // 4. Simpan tarball ke temp file
+    const tmpDir = path.join(APP_ROOT, 'data', '_update_tmp');
+    if (fs.existsSync(tmpDir)) fs.rmSync(tmpDir, { recursive: true, force: true });
+    fs.mkdirSync(tmpDir, { recursive: true });
+
+    const tarballPath = path.join(tmpDir, 'update.tar.gz');
+    const arrayBuffer = await tarResp.arrayBuffer();
+    fs.writeFileSync(tarballPath, Buffer.from(arrayBuffer));
+
+    // 5. Extract tarball
+    const extractDir = path.join(tmpDir, 'extracted');
+    fs.mkdirSync(extractDir, { recursive: true });
+    execSync(`tar -xzf "${tarballPath}" -C "${extractDir}"`, { stdio: 'pipe' });
+
+    // GitHub tarball extracts to a folder like "hudmail-AsramaFood-abc1234/"
+    const extractedContents = fs.readdirSync(extractDir);
+    const repoDir = extractedContents.find(d =>
+      fs.statSync(path.join(extractDir, d)).isDirectory()
+    );
+    if (!repoDir) {
+      throw new Error('Gagal mengekstrak update — folder repo tidak ditemukan');
+    }
+    const sourceDir = path.join(extractDir, repoDir);
+
+    // 6. Salin file-file baru (kecuali yang di-preserve)
+    function shouldPreserve(relativePath) {
+      return PRESERVE_PATHS.some(p =>
+        relativePath === p || relativePath.startsWith(p + '/')  || relativePath.startsWith(p + '\\')
+      );
+    }
+
+    function copyRecursive(src, dest, relBase) {
+      const entries = fs.readdirSync(src, { withFileTypes: true });
+      for (const entry of entries) {
+        const srcPath = path.join(src, entry.name);
+        const destPath = path.join(dest, entry.name);
+        const relativePath = relBase ? `${relBase}/${entry.name}` : entry.name;
+
+        if (shouldPreserve(relativePath)) continue;
+
+        if (entry.isDirectory()) {
+          if (!fs.existsSync(destPath)) fs.mkdirSync(destPath, { recursive: true });
+          copyRecursive(srcPath, destPath, relativePath);
+        } else {
+          fs.copyFileSync(srcPath, destPath);
+        }
+      }
+    }
+
+    copyRecursive(sourceDir, APP_ROOT, '');
+
+    // 7. Jalankan npm install jika package.json berubah
+    try {
+      const newPkg = fs.readFileSync(path.join(sourceDir, 'package.json'), 'utf-8');
+      const oldPkg = fs.readFileSync(path.join(APP_ROOT, 'package.json'), 'utf-8');
+      // Bandingkan dependencies saja
+      const newDeps = JSON.parse(newPkg).dependencies || {};
+      const oldDeps = JSON.parse(oldPkg).dependencies || {};
+      if (JSON.stringify(newDeps) !== JSON.stringify(oldDeps)) {
+        console.log('[update] package.json dependencies berubah, menjalankan npm install...');
+        execSync('npm install --omit=dev', { cwd: APP_ROOT, stdio: 'pipe', timeout: 120000 });
+      }
+    } catch (npmErr) {
+      console.warn('[update] npm install warning:', npmErr.message);
+      // Lanjut saja, tidak fatal
+    }
+
+    // 8. Tulis VERSION baru
+    fs.writeFileSync(VERSION_FILE, latestSha + '\n');
+
+    // 9. Bersihkan temp files
+    try {
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    } catch {
+      // best-effort cleanup
+    }
+
+    console.log(`[update] Berhasil update dari ${currentVersion.slice(0, 7)} ke ${latestSha.slice(0, 7)}`);
+
+    // 10. Kirim response sebelum restart
+    res.json({
+      ok: true,
+      message: `Update berhasil! Versi baru: ${latestSha.slice(0, 7)}. Server akan restart...`,
+      new_version: latestSha,
+    });
+
+    // 11. Restart server setelah response terkirim
+    setTimeout(() => {
+      console.log('[update] Restarting server...');
+      process.exit(0); // PM2/Docker/systemd akan restart otomatis
+    }, 1500);
+
+  } catch (err) {
+    console.error('[update/apply] Error:', err);
+
+    // Bersihkan temp files jika error
+    const tmpDir = path.join(APP_ROOT, 'data', '_update_tmp');
+    try { fs.rmSync(tmpDir, { recursive: true, force: true }); } catch {}
+
+    res.status(500).json({ error: 'Gagal menginstal pembaruan: ' + (err.message || 'Unknown error') });
+  }
 });
 
 module.exports = router;

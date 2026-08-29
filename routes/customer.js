@@ -95,6 +95,7 @@ router.get('/settings/public', (req, res) => {
     egg_price: parseInt(getSetting('egg_price', '3000'), 10),
     drink_temp_cold_price: parseInt(getSetting('drink_temp_cold_price', '1000'), 10),
     egg_stock: parseInt(getSetting('egg_stock', '0'), 10),
+    ice_stock: parseInt(getSetting('ice_stock', '0'), 10),
   });
 });
 
@@ -106,7 +107,7 @@ router.get('/categories', (req, res) => {
 router.get('/menu', (req, res) => {
   const { search = '', category = '' } = req.query;
   let sql = `
-    SELECT m.id, m.name, m.description, m.price, m.discount_price, m.is_discount, m.stock, m.is_available, m.image_emoji, m.image, m.sold_count, m.allow_egg,
+    SELECT m.id, m.name, m.description, m.price, m.discount_price, m.is_discount, m.stock, m.is_available, m.image_emoji, m.image, m.sold_count, m.allow_egg, m.allow_ice,
            c.id AS category_id, c.name AS category_name
     FROM menu_items m
     LEFT JOIN categories c ON c.id = m.category_id
@@ -132,7 +133,7 @@ router.get('/menu/terlaris', (req, res) => {
   const limit = Math.min(parseInt(req.query.limit, 10) || 6, 20);
   const rows = db
     .prepare(
-      `SELECT m.id, m.name, m.description, m.price, m.discount_price, m.is_discount, m.stock, m.is_available, m.image_emoji, m.image, m.sold_count, m.allow_egg,
+      `SELECT m.id, m.name, m.description, m.price, m.discount_price, m.is_discount, m.stock, m.is_available, m.image_emoji, m.image, m.sold_count, m.allow_egg, m.allow_ice,
               c.id AS category_id, c.name AS category_name
        FROM menu_items m
        LEFT JOIN categories c ON c.id = m.category_id
@@ -176,7 +177,9 @@ router.post('/orders', orderRateLimit, (req, res) => {
     const eggPrice = parseInt(getSetting('egg_price', '3000'), 10);
     const drinkColdPrice = parseInt(getSetting('drink_temp_cold_price', '1000'), 10);
     const currentEggStock = parseInt(getSetting('egg_stock', '0'), 10);
+    const currentIceStock = parseInt(getSetting('ice_stock', '0'), 10);
     let totalEggsNeeded = 0; // akumulasi telur yang dibutuhkan seluruh item order ini
+    let totalIceNeeded = 0;  // akumulasi es batu yang dibutuhkan seluruh item order ini
 
     for (const it of items) {
       const menuItem = db.prepare('SELECT m.*, c.name AS category_name FROM menu_items m LEFT JOIN categories c ON c.id = m.category_id WHERE m.id = ? AND m.is_available = 1').get(it.menu_item_id);
@@ -203,9 +206,11 @@ router.post('/orders', orderRateLimit, (req, res) => {
         addonLabels.push(`+Telur (+Rp ${eggPrice.toLocaleString('id-ID')})`);
       }
 
-      // Opsi Panas/Dingin (hanya untuk minuman)
-      if (isMinuman && it.temp) {
+      // Opsi Panas/Dingin (hanya untuk minuman yang allow_ice = 1)
+      if (isMinuman && menuItem.allow_ice && it.temp) {
         if (it.temp === 'dingin') {
+          // Hitung kebutuhan es batu (1 porsi per qty item)
+          totalIceNeeded += qty;
           addonPrice += drinkColdPrice;
           addonLabels.push(`Es/Dingin (+Rp ${drinkColdPrice.toLocaleString('id-ID')})`);
         } else {
@@ -229,6 +234,12 @@ router.post('/orders', orderRateLimit, (req, res) => {
     if (totalEggsNeeded > 0 && currentEggStock < totalEggsNeeded) {
       const sisaStok = currentEggStock <= 0 ? 'habis' : `sisa ${currentEggStock} butir`;
       throw new Error(`Stok telur tidak cukup (${sisaStok}), tidak bisa tambah telur untuk semua item`);
+    }
+
+    // Validasi stok es batu setelah semua item dihitung
+    if (totalIceNeeded > 0 && currentIceStock < totalIceNeeded) {
+      const sisaStok = currentIceStock <= 0 ? 'habis' : `sisa ${currentIceStock} porsi`;
+      throw new Error(`Stok es batu tidak cukup (${sisaStok}), tidak bisa pesan minuman dingin untuk semua item`);
     }
 
     const deliveryFee = method === 'antar' ? parseInt(getSetting('delivery_fee', '0'), 10) : 0;
@@ -259,6 +270,11 @@ router.post('/orders', orderRateLimit, (req, res) => {
     // Kurangi stok telur global sesuai total telur yang dipesan
     if (totalEggsNeeded > 0) {
       setSetting('egg_stock', Math.max(0, currentEggStock - totalEggsNeeded));
+    }
+
+    // Kurangi stok es batu global sesuai total es yang dipesan
+    if (totalIceNeeded > 0) {
+      setSetting('ice_stock', Math.max(0, currentIceStock - totalIceNeeded));
     }
 
     return { orderId, orderCode, total };

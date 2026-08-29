@@ -56,6 +56,7 @@ CREATE TABLE IF NOT EXISTS menu_items (
   image_emoji TEXT DEFAULT '🍽️',
   image TEXT,
   allow_egg INTEGER DEFAULT 0, -- 1 = pelanggan bisa pilih +Telur
+  allow_ice INTEGER DEFAULT 0, -- 1 = pelanggan bisa pilih Es/Dingin (khusus minuman)
   created_at TEXT DEFAULT (datetime('now'))
 );
 
@@ -130,6 +131,9 @@ if (!menuColumns.includes('sold_count')) {
 if (!menuColumns.includes('allow_egg')) {
   db.exec(`ALTER TABLE menu_items ADD COLUMN allow_egg INTEGER NOT NULL DEFAULT 0`);
 }
+if (!menuColumns.includes('allow_ice')) {
+  db.exec(`ALTER TABLE menu_items ADD COLUMN allow_ice INTEGER NOT NULL DEFAULT 0`);
+}
 const orderItemColumns = db.prepare("PRAGMA table_info(order_items)").all().map((c) => c.name);
 if (!orderItemColumns.includes('cost_snapshot')) {
   db.exec(`ALTER TABLE order_items ADD COLUMN cost_snapshot INTEGER NOT NULL DEFAULT 0`);
@@ -184,6 +188,7 @@ const defaultSettings = {
   egg_price: '3000',           // harga tambah telur (khusus kategori Makanan)
   drink_temp_cold_price: '1000', // surcharge minuman dingin (khusus kategori Minuman)
   egg_stock: '0',              // stok telur saat ini (0 = habis / tidak dicatat)
+  ice_stock: '0',              // stok es batu saat ini (0 = habis / tidak tersedia)
   auto_schedule: '0',          // 1 = buka/tutup otomatis sesuai jadwal
   schedule_open: '07:00',      // jam buka otomatis (HH:MM)
   schedule_close: '21:00',     // jam tutup otomatis (HH:MM)
