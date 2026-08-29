@@ -25,6 +25,7 @@
                     AdminPanel</a>
             </div>
             <div class="admin-header-actions">
+                <button class="icon-btn" id="notify-toggle" title="Notifikasi Suara: Nyala"><i aria-hidden="true" class="fa-solid fa-bell"></i></button>
                 <a class="icon-btn" href="/" title="Halaman guest"><i aria-hidden="true"
                         class="fa-solid fa-store"></i></a>
                 <button class="icon-btn" id="theme-toggle"><i aria-hidden="true" class="fa-solid fa-moon"></i></button>
@@ -134,7 +135,7 @@
     </div>
     <script src="/js/theme.js"></script>
     <script>initThemeToggle('theme-toggle'); const sidebar = document.getElementById('sidebar'); const toggleBtn = document.getElementById('toggle-sidebar'); if (toggleBtn && sidebar) { toggleBtn.addEventListener('click', () => sidebar.classList.toggle('open')); }</script>
-    <script src="/admin/js/dashboard.js"></script>
+    <script src="/admin/js/dashboard.js?v=4"></script>
 </body>
 
 </html>

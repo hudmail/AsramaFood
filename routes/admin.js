@@ -5,7 +5,7 @@ const PDFDocument = require('pdfkit');
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
-const { db, getSetting, setSetting } = require('../db');
+const { db, getSetting, setSetting, appEvents } = require('../db');
 
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
@@ -96,6 +96,29 @@ router.get('/dashboard', requireAuth, (req, res) => {
   const unconfirmedPayments = db.prepare(`SELECT COUNT(*) AS c FROM orders WHERE payment_status = 'menunggu_konfirmasi'`).get().c;
   const lowStock = db.prepare('SELECT id, name, stock FROM menu_items WHERE stock <= 3 AND is_available = 1').all();
   res.json({ ...summary, total_profit: summary.total_revenue - cost.total_cost, pending_orders: pending, unconfirmed_payments: unconfirmedPayments, low_stock: lowStock });
+});
+
+// SSE Endpoint untuk push notification pesanan baru ke dashboard
+router.get('/events', requireAuth, (req, res) => {
+  res.setHeader('Content-Type', 'text/event-stream');
+  res.setHeader('Cache-Control', 'no-cache');
+  res.setHeader('Connection', 'keep-alive');
+  res.flushHeaders();
+
+  const onNewOrder = (data) => {
+    res.write(`event: new_order\ndata: ${JSON.stringify(data)}\n\n`);
+  };
+  const onPaymentUploaded = (data) => {
+    res.write(`event: payment_uploaded\ndata: ${JSON.stringify(data)}\n\n`);
+  };
+
+  appEvents.on('new_order', onNewOrder);
+  appEvents.on('payment_uploaded', onPaymentUploaded);
+
+  req.on('close', () => {
+    appEvents.off('new_order', onNewOrder);
+    appEvents.off('payment_uploaded', onPaymentUploaded);
+  });
 });
 
 router.get('/orders', requireAuth, (req, res) => {

@@ -3,7 +3,7 @@ const rateLimit = require('express-rate-limit');
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
-const { db, getSetting, setSetting, isStoreOpen } = require('../db');
+const { db, getSetting, setSetting, isStoreOpen, appEvents } = require('../db');
 
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
@@ -282,6 +282,12 @@ router.post('/orders', orderRateLimit, (req, res) => {
 
   try {
     const result = tx();
+    // Beritahu dashboard admin via SSE
+    appEvents.emit('new_order', {
+      order_code: result.orderCode,
+      customer_name: customer_name,
+      total: result.total
+    });
     res.status(201).json({ order_code: result.orderCode, total: result.total });
   } catch (err) {
     res.status(400).json({ error: err.message || 'Gagal membuat pesanan' });
@@ -314,6 +320,11 @@ router.post('/orders/:code/bukti-bayar', uploadOne('proof_image'), (req, res) =>
   }
 
   db.prepare(`UPDATE orders SET payment_proof = ?, payment_status = 'menunggu_konfirmasi', updated_at = datetime('now') WHERE id = ?`).run(proof_image, order.id);
+
+  appEvents.emit('payment_uploaded', {
+    order_code: order.order_code,
+    customer_name: order.customer_name
+  });
 
   res.json({ ok: true });
 });

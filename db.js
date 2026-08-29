@@ -1,6 +1,9 @@
 const path = require('path');
 const fs = require('fs');
 const { DatabaseSync } = require('node:sqlite'); // bawaan Node.js, tanpa native build
+const { EventEmitter } = require('events');
+
+const appEvents = new EventEmitter();
 const bcrypt = require('bcryptjs');
 
 const DATA_DIR = process.env.DATA_DIR || path.join(__dirname, 'data');
@@ -239,4 +242,4 @@ function isStoreOpen() {
   }
 }
 
-module.exports = { db, getSetting, setSetting, isStoreOpen };
+module.exports = { db, getSetting, setSetting, isStoreOpen, appEvents };

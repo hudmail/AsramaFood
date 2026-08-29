@@ -238,14 +238,93 @@ async function updateStatus(orderId, status) {
   }
 }
 
+// --- Push Notification (SSE & Web Audio) ---
+let notifyEnabled = true;
+const notifyAudio = new Audio('/admin/notification.mp3');
+
+// Browser modern memblokir suara yang diputar tanpa interaksi user.
+// Kita mencoba meload/memainkan audio sejenak secara diam-diam saat klik pertama 
+// agar browser mengizinkan audio diputar otomatis ke depannya.
+document.addEventListener('click', () => {
+  notifyAudio.play().then(() => {
+    notifyAudio.pause();
+    notifyAudio.currentTime = 0;
+  }).catch(e => {}); // catch harmless error if already unlocked
+}, { once: true });
+
+function playBeep() {
+  if (!notifyEnabled) return;
+  try {
+    notifyAudio.currentTime = 0;
+    notifyAudio.play().catch(e => {
+      console.error("Gagal memutar notifikasi MP3. Pastikan sudah klik layar terlebih dahulu.", e);
+    });
+  } catch(e) {}
+}
+
+function showNativeNotification(title, body) {
+  if (!notifyEnabled) return;
+  if (!('Notification' in window)) return;
+  
+  if (Notification.permission === 'granted') {
+    new Notification(title, { body, icon: '/favicon.svg' });
+  } else if (Notification.permission !== 'denied') {
+    Notification.requestPermission().then(permission => {
+      if (permission === 'granted') {
+        new Notification(title, { body, icon: '/favicon.svg' });
+      }
+    });
+  }
+}
+
+function initNotifications() {
+  // Bind toggle button
+  const toggleBtn = document.getElementById('notify-toggle');
+  if (toggleBtn) {
+    toggleBtn.addEventListener('click', () => {
+      notifyEnabled = !notifyEnabled;
+      if (notifyEnabled) {
+        toggleBtn.innerHTML = '<i aria-hidden="true" class="fa-solid fa-bell"></i>';
+        toggleBtn.title = 'Notifikasi Suara: Nyala';
+        if ('Notification' in window && Notification.permission === 'default') {
+          Notification.requestPermission();
+        }
+        playBeep(); // Test suara saat dinyalakan
+      } else {
+        toggleBtn.innerHTML = '<i aria-hidden="true" class="fa-solid fa-bell-slash"></i>';
+        toggleBtn.title = 'Notifikasi Suara: Mati';
+      }
+    });
+  }
+
+  // SSE Connection
+  const evtSource = new EventSource('/api/admin/events');
+  evtSource.addEventListener('new_order', (e) => {
+    try {
+      const data = JSON.parse(e.data);
+      playBeep();
+      showNativeNotification('Pesanan Baru Masuk!', `Pesanan ${data.order_code} dari ${data.customer_name} (Rp ${Number(data.total).toLocaleString('id-ID')})`);
+      
+      // Auto refresh data
+      loadDashboard();
+      loadOrders();
+    } catch(err) {
+      console.error('SSE Error:', err);
+    }
+  });
+}
+
 (async function init() {
   const ok = await requireLogin();
   if (!ok) return;
   renderFilterTabs();
   await loadDashboard();
   await loadOrders();
+  initNotifications();
+  
+  // Karena sudah pakai SSE (real-time), polling hanya untuk backup setiap 30 detik
   pollTimer = setInterval(() => {
     loadDashboard();
     loadOrders();
-  }, 15000);
+  }, 30000);
 })();
