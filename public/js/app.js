@@ -7,6 +7,38 @@ let state = {
   location: JSON.parse(localStorage.getItem('af_location') || 'null') || { building: 'Gedung A' }
 };
 
+// ---------------------------------------------------------------------------
+// Cart persistence — simpan & muat dari localStorage agar tidak hilang saat refresh
+// ---------------------------------------------------------------------------
+function saveCart() {
+  try {
+    // Simpan hanya data minimal yang diperlukan untuk restore
+    const serialized = {};
+    for (const [key, entry] of Object.entries(cart)) {
+      serialized[key] = { itemId: entry.item.id, qty: entry.qty, options: entry.options || {} };
+    }
+    localStorage.setItem('af_cart', JSON.stringify(serialized));
+  } catch (e) { /* localStorage penuh / disabled, abaikan */ }
+}
+
+function loadCart() {
+  try {
+    const raw = localStorage.getItem('af_cart');
+    if (!raw) return;
+    const serialized = JSON.parse(raw);
+    // Restore cart entry setelah menu berhasil dimuat (item harus sudah ada di allMenu)
+    // Dipanggil dari loadMenu() setelah allMenu terisi
+    for (const [key, entry] of Object.entries(serialized)) {
+      const item = allMenu.find(x => x.id === entry.itemId);
+      if (!item) continue; // Menu sudah tidak ada / tidak tersedia lagi
+      if (item.stock < 1) continue; // Stok habis, jangan restore
+      const restoredQty = Math.min(entry.qty, item.stock);
+      if (restoredQty < 1) continue;
+      cart[key] = { item, qty: restoredQty, options: entry.options || {} };
+    }
+  } catch (e) { /* Data lama corrupt, abaikan */ }
+}
+
 const $ = (id) => document.getElementById(id);
 const money = (n) => 'Rp ' + Number(n || 0).toLocaleString('id-ID');
 function escapeHtml(str='') { const d=document.createElement('div'); d.textContent=String(str); return d.innerHTML; }
@@ -67,7 +99,10 @@ async function loadCategories(){
 }
 async function loadMenu(){
   const qs=new URLSearchParams(); if(state.activeCategory) qs.set('category',state.activeCategory); if(state.searchQuery) qs.set('search',state.searchQuery);
-  allMenu=await api('/api/menu?'+qs.toString()); renderMenu();
+  allMenu=await api('/api/menu?'+qs.toString());
+  // Load cart dari localStorage setelah allMenu terisi (butuh data item untuk validasi stok)
+  if (!window.__cartLoaded) { loadCart(); window.__cartLoaded = true; updateCart(); }
+  renderMenu();
 }
 function foodCardHtml(item){
   const out=item.stock<=0;
@@ -251,6 +286,7 @@ function _doAddToCart(item, options) {
   const current = cart[key]?.qty || 0;
   if (current >= item.stock) return showToast('Jumlah melebihi stok');
   cart[key] = { item, qty: current + 1, options };
+  saveCart();
   updateCart();
   showToast(`${item.name} ditambahkan`);
 }
@@ -261,6 +297,7 @@ window.updateQuantity = (key, delta) => {
   if (next <= 0) delete cart[key];
   else if (next <= cart[key].item.stock) cart[key].qty = next;
   else return showToast('Jumlah melebihi stok');
+  saveCart();
   updateCart();
 };
 
@@ -343,7 +380,7 @@ function setup(){
       const room=pickup==='antar'?`${state.location.building} - ${$('checkout-room').value.trim()}`:'Ambil sendiri';
       const notes=[$('order-notes').value.trim(), pickup==='antar'?$('checkout-note').value.trim():''].filter(Boolean).join(' | ');
       const data=await api('/api/orders',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({customer_name:$('student-name').value.trim(),room,whatsapp:$('student-whatsapp').value.trim(),note:notes,method:pickup,payment_method:payment,items:cartEntries().map(({item,qty,options})=>({menu_item_id:item.id,qty,...(options||{})}))})});
-      cart={}; updateCart(); window.location.href='/track.html?code='+encodeURIComponent(data.order_code);
+      cart={}; saveCart(); updateCart(); window.location.href='/track.html?code='+encodeURIComponent(data.order_code);
     }catch(err){ showToast(err.message); btn.disabled=false; btn.innerHTML='<i aria-hidden="true" class="fa-solid fa-check"></i> Buat Pesanan'; }
   };
 }

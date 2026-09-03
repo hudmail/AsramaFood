@@ -129,6 +129,105 @@
                 </div>
             </div>
 
+            <!-- Panel Ubah Password (semua role) -->
+            <div style="display: flex; flex-wrap: wrap; gap: 1.5rem; margin-top: 1.5rem;">
+                <div class="panel" style="margin: 0; flex: 1 1 350px; min-width: 0;">
+                    <div class="panel-header">
+                        <h3 style="font-size: 1.1rem; margin: 0;"><i class="fa-solid fa-lock" style="color:var(--primary)"></i> Ubah Password</h3>
+                    </div>
+                    <div style="padding: 1.5rem;">
+                        <!-- Info akun yang sedang login -->
+                        <div style="display:flex; align-items:center; gap:0.75rem; margin-bottom:1.25rem; padding:0.85rem 1rem; background:var(--bg-body); border-radius:var(--radius-sm); border:1px solid var(--border-color);">
+                            <div style="width:36px;height:36px;border-radius:50%;background:var(--primary-light);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                                <i class="fa-solid fa-user" style="color:var(--primary);font-size:0.95rem;"></i>
+                            </div>
+                            <div>
+                                <div style="font-size:0.8rem;color:var(--text-muted);font-weight:500;">Akun yang sedang aktif</div>
+                                <div id="currentUsernameLabel" style="font-size:1rem;font-weight:700;color:var(--text-title);">—</div>
+                            </div>
+                        </div>
+
+                        <form id="changePasswordForm" onsubmit="changePassword(event)" autocomplete="off">
+                            <div class="form-group">
+                                <label class="form-label" for="currentPassword">Password Lama</label>
+                                <div style="position:relative;">
+                                    <input class="form-control" type="password" id="currentPassword" required autocomplete="current-password" placeholder="Password yang sekarang dipakai">
+                                    <button type="button" class="icon-btn" onclick="togglePasswordVisibility('currentPassword', this)" style="position:absolute;right:0.6rem;top:50%;transform:translateY(-50%);padding:0.3rem;" tabindex="-1">
+                                        <i class="fa-solid fa-eye" aria-hidden="true"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label" for="newPassword">Password Baru</label>
+                                <div style="position:relative;">
+                                    <input class="form-control" type="password" id="newPassword" required autocomplete="new-password" placeholder="Minimal 8 karakter" minlength="8">
+                                    <button type="button" class="icon-btn" onclick="togglePasswordVisibility('newPassword', this)" style="position:absolute;right:0.6rem;top:50%;transform:translateY(-50%);padding:0.3rem;" tabindex="-1">
+                                        <i class="fa-solid fa-eye" aria-hidden="true"></i>
+                                    </button>
+                                </div>
+                                <!-- Strength indicator -->
+                                <div id="pwStrengthBar" style="margin-top:0.5rem; height:4px; border-radius:2px; background:var(--border-color); overflow:hidden; display:none;">
+                                    <div id="pwStrengthFill" style="height:100%; width:0%; transition:width 0.3s, background 0.3s;"></div>
+                                </div>
+                                <div id="pwStrengthLabel" style="font-size:0.78rem; margin-top:0.3rem; font-weight:600; display:none;"></div>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label" for="confirmPassword">Konfirmasi Password Baru</label>
+                                <div style="position:relative;">
+                                    <input class="form-control" type="password" id="confirmPassword" required autocomplete="new-password" placeholder="Ulangi password baru">
+                                    <button type="button" class="icon-btn" onclick="togglePasswordVisibility('confirmPassword', this)" style="position:absolute;right:0.6rem;top:50%;transform:translateY(-50%);padding:0.3rem;" tabindex="-1">
+                                        <i class="fa-solid fa-eye" aria-hidden="true"></i>
+                                    </button>
+                                </div>
+                                <div id="confirmPasswordMsg" style="font-size:0.78rem; margin-top:0.3rem; font-weight:600;"></div>
+                            </div>
+                            <button type="submit" class="btn" id="changePasswordBtn" style="width:100%;">
+                                <i aria-hidden="true" class="fa-solid fa-key"></i> Simpan Password Baru
+                            </button>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- Panel Kelola Akun (hanya owner) -->
+                <div class="panel" id="manageAccountsPanel" style="margin: 0; flex: 1 1 300px; min-width: 0; display:none;">
+                    <div class="panel-header">
+                        <h3 style="font-size: 1.1rem; margin: 0;"><i class="fa-solid fa-users-gear" style="color:var(--primary)"></i> Kelola Akun</h3>
+                    </div>
+                    <div style="padding: 1.5rem;">
+                        <p style="font-size:0.88rem; color:var(--text-muted); margin-bottom:1.25rem;">
+                            Sebagai <strong>owner</strong>, Anda dapat mereset password akun lain tanpa perlu mengetahui password lamanya.
+                        </p>
+                        <div id="adminUserList" style="display:flex; flex-direction:column; gap:0.75rem; margin-bottom:1.25rem;">
+                            <!-- Diisi oleh JS -->
+                        </div>
+
+                        <!-- Form reset password akun lain -->
+                        <div id="resetPasswordPanel" style="display:none; margin-top:1rem; padding:1rem; border:1.5px solid var(--primary); border-radius:var(--radius-sm); background:var(--primary-light);">
+                            <div style="font-size:0.85rem; font-weight:700; color:var(--primary); margin-bottom:0.75rem;">
+                                <i class="fa-solid fa-shield-halved"></i> Reset password: <span id="resetTargetName"></span>
+                            </div>
+                            <div class="form-group" style="margin-bottom:0.75rem;">
+                                <label class="form-label" for="resetNewPassword">Password Baru</label>
+                                <div style="position:relative;">
+                                    <input class="form-control" type="password" id="resetNewPassword" placeholder="Minimal 8 karakter" minlength="8" autocomplete="new-password">
+                                    <button type="button" class="icon-btn" onclick="togglePasswordVisibility('resetNewPassword', this)" style="position:absolute;right:0.6rem;top:50%;transform:translateY(-50%);padding:0.3rem;" tabindex="-1">
+                                        <i class="fa-solid fa-eye" aria-hidden="true"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            <div style="display:flex; gap:0.5rem;">
+                                <button class="btn" id="doResetPasswordBtn" onclick="doResetPassword()" style="flex:1; font-size:0.85rem;">
+                                    <i class="fa-solid fa-key"></i> Reset Password
+                                </button>
+                                <button class="btn secondary" onclick="cancelResetPassword()" style="font-size:0.85rem; width:auto; padding:0.6rem 1rem;">
+                                    Batal
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <!-- Panel Pembaruan Aplikasi (hanya Owner) -->
             <div class="panel" id="updatePanel" style="display:none; margin-top: 1.5rem;">
                 <div class="panel-header">

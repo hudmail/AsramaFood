@@ -2,50 +2,11 @@ const express = require('express');
 const bcrypt = require('bcryptjs');
 const ExcelJS = require('exceljs');
 const PDFDocument = require('pdfkit');
-const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
 const { db, getSetting, setSetting, appEvents } = require('../db');
-
-const storage = multer.diskStorage({
-  destination: function (req, file, cb) {
-    const dir = path.join(__dirname, '../public/uploads');
-    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-    cb(null, dir);
-  },
-  filename: function (req, file, cb) {
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-    cb(null, file.fieldname + '-' + uniqueSuffix + path.extname(file.originalname));
-  }
-});
-// Batasi ukuran (5MB) dan hanya terima file gambar - supaya /uploads tidak jadi
-// celah DoS (file raksasa) atau stored-XSS (upload .html/.svg berisi script).
-const upload = multer({
-  storage: storage,
-  limits: { fileSize: 5 * 1024 * 1024 },
-  fileFilter: (req, file, cb) => {
-    if (!file.mimetype.startsWith('image/')) {
-      return cb(new Error('File yang diupload harus berupa gambar'));
-    }
-    cb(null, true);
-  },
-});
+const { uploadPublicOne } = require('../middleware/upload');
 const { requireAuth, requireOwner, loginRateLimit } = require('../middleware/auth');
-
-// Bungkus upload.single supaya error dari multer (file kegedean, tipe salah)
-// dibalas rapi sebagai 400 JSON, bukan nyangkut ke error handler generik (500).
-function uploadOne(fieldName) {
-  const mw = upload.single(fieldName);
-  return (req, res, next) => {
-    mw(req, res, (err) => {
-      if (!err) return next();
-      if (err.code === 'LIMIT_FILE_SIZE') {
-        return res.status(400).json({ error: 'Ukuran file maksimal 5MB' });
-      }
-      return res.status(400).json({ error: err.message || 'Gagal mengunggah file' });
-    });
-  };
-}
 
 const router = express.Router();
 
@@ -74,6 +35,68 @@ router.post('/logout', (req, res) => {
 
 router.get('/me', requireAuth, (req, res) => {
   res.json({ username: req.session.username, role: req.session.role });
+});
+
+// Ubah password akun sendiri (semua role)
+router.put('/change-password', requireAuth, (req, res) => {
+  const { current_password, new_password } = req.body || {};
+
+  if (!current_password || !new_password) {
+    return res.status(400).json({ error: 'Password lama dan password baru wajib diisi' });
+  }
+  if (new_password.length < 8) {
+    return res.status(400).json({ error: 'Password baru minimal 8 karakter' });
+  }
+  if (new_password.length > 128) {
+    return res.status(400).json({ error: 'Password baru terlalu panjang' });
+  }
+
+  const user = db.prepare('SELECT * FROM admin_users WHERE id = ?').get(req.session.userId);
+  if (!user) return res.status(404).json({ error: 'Akun tidak ditemukan' });
+
+  if (!bcrypt.compareSync(current_password, user.password_hash)) {
+    return res.status(401).json({ error: 'Password lama tidak sesuai' });
+  }
+  if (bcrypt.compareSync(new_password, user.password_hash)) {
+    return res.status(400).json({ error: 'Password baru tidak boleh sama dengan password lama' });
+  }
+
+  const newHash = bcrypt.hashSync(new_password, 10);
+  db.prepare('UPDATE admin_users SET password_hash = ? WHERE id = ?').run(newHash, user.id);
+
+  res.json({ ok: true });
+});
+
+// Daftar akun admin — hanya owner yang boleh lihat & kelola akun lain
+router.get('/admin-users', requireOwner, (req, res) => {
+  const users = db.prepare('SELECT id, username, role, created_at FROM admin_users ORDER BY id').all();
+  res.json(users);
+});
+
+// Reset password akun lain — hanya owner
+// Owner tidak perlu tahu password lama akun yang di-reset (admin privilege).
+router.put('/admin-users/:id/reset-password', requireOwner, (req, res) => {
+  const { new_password } = req.body || {};
+  if (!new_password) return res.status(400).json({ error: 'Password baru wajib diisi' });
+  if (new_password.length < 8) {
+    return res.status(400).json({ error: 'Password baru minimal 8 karakter' });
+  }
+  if (new_password.length > 128) {
+    return res.status(400).json({ error: 'Password baru terlalu panjang' });
+  }
+
+  const target = db.prepare('SELECT * FROM admin_users WHERE id = ?').get(req.params.id);
+  if (!target) return res.status(404).json({ error: 'Akun tidak ditemukan' });
+
+  // Owner tidak bisa reset password diri sendiri lewat endpoint ini (pakai /change-password)
+  if (target.id === req.session.userId) {
+    return res.status(400).json({ error: 'Gunakan fitur "Ubah Password" untuk mengubah password Anda sendiri' });
+  }
+
+  const newHash = bcrypt.hashSync(new_password, 10);
+  db.prepare('UPDATE admin_users SET password_hash = ? WHERE id = ?').run(newHash, target.id);
+
+  res.json({ ok: true });
 });
 
 router.get('/dashboard', requireAuth, (req, res) => {
@@ -123,7 +146,19 @@ router.get('/events', requireAuth, (req, res) => {
 
 router.get('/orders', requireAuth, (req, res) => {
   const { status = '', payment_status = '' } = req.query;
-  let sql = 'SELECT * FROM orders';
+
+  // Validasi nilai filter agar tidak mengembalikan hasil kosong tanpa error
+  if (status && !VALID_STATUSES.includes(status)) {
+    return res.status(400).json({ error: 'Status tidak valid' });
+  }
+  if (payment_status && !VALID_PAYMENT_STATUSES.includes(payment_status)) {
+    return res.status(400).json({ error: 'Status pembayaran tidak valid' });
+  }
+
+  let sql = `SELECT id, order_code, customer_name, room, whatsapp, note, method,
+    delivery_fee, subtotal, total, status, payment_method, payment_status,
+    paid_at, created_at, updated_at
+    FROM orders`;
   const clauses = [];
   const params = [];
   if (status) {
@@ -235,7 +270,7 @@ function deleteUploadedFile(webPath) {
   fs.unlink(filePath, () => {}); // best-effort, tidak masalah kalau gagal/sudah tidak ada
 }
 
-router.post('/menu', requireAuth, uploadOne('image'), (req, res) => {
+router.post('/menu', requireAuth, uploadPublicOne('image'), (req, res) => {
   const body = req.body || {};
   const name = (body.name || '').trim();
   const description = body.description || '';
@@ -269,7 +304,7 @@ router.post('/menu', requireAuth, uploadOne('image'), (req, res) => {
   res.status(201).json({ id: result.lastInsertRowid });
 });
 
-router.put('/menu/:id', requireAuth, uploadOne('image'), (req, res) => {
+router.put('/menu/:id', requireAuth, uploadPublicOne('image'), (req, res) => {
   const existing = db.prepare('SELECT * FROM menu_items WHERE id = ?').get(req.params.id);
   if (!existing) return res.status(404).json({ error: 'Menu tidak ditemukan' });
 
@@ -312,6 +347,23 @@ router.delete('/menu/:id', requireOwner, (req, res) => {
   db.prepare('DELETE FROM menu_items WHERE id = ?').run(req.params.id);
   if (existing) deleteUploadedFile(existing.image);
   res.json({ ok: true });
+});
+
+// Endpoint protected untuk melihat bukti bayar pelanggan.
+// File bukti bayar disimpan di data/uploads/proofs/ (di luar public/),
+// sehingga tidak bisa diakses langsung oleh browser — harus melewati endpoint ini
+// yang memverifikasi session admin.
+router.get('/proof/:filename', requireAuth, (req, res) => {
+  // Sanitasi nama file: hanya izinkan karakter aman, cegah path traversal
+  const filename = path.basename(req.params.filename);
+  if (!/^[a-zA-Z0-9_\-.]+$/.test(filename)) {
+    return res.status(400).json({ error: 'Nama file tidak valid' });
+  }
+  const filePath = path.join(__dirname, '../data/uploads/proofs', filename);
+  if (!fs.existsSync(filePath)) {
+    return res.status(404).json({ error: 'File tidak ditemukan' });
+  }
+  res.sendFile(filePath);
 });
 
 // --- Categories ---
@@ -358,7 +410,7 @@ router.get('/settings', requireAuth, (req, res) => {
 
 // Pengaturan toko (jam buka, ongkir, metode pembayaran, gambar QRIS, dll)
 // adalah keputusan level pemilik usaha -> dibatasi untuk owner saja.
-router.put('/settings', requireOwner, uploadOne('qris_image'), (req, res) => {
+router.put('/settings', requireOwner, uploadPublicOne('qris_image'), (req, res) => {
   const { store_name, is_open, delivery_fee, open_hours, available_buildings, allow_qris, allow_cod, egg_price, drink_temp_cold_price, egg_stock, ice_stock, auto_schedule, schedule_open, schedule_close } = req.body || {};
   const qris_image = req.file ? `/uploads/${req.file.filename}` : req.body.qris_image;
   if (req.file) {

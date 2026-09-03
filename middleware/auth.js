@@ -3,8 +3,12 @@ function requireAuth(req, res, next) {
   return res.status(401).json({ error: 'Belum login' });
 }
 
+// requireOwner memeriksa KEDUANYA: userId (sudah login) DAN role owner.
+// Tanpa cek userId, sesi yang dimanipulasi dengan role='owner' tapi userId kosong
+// bisa lolos dari pengecekan role saja.
 function requireOwner(req, res, next) {
-  if (req.session && req.session.role === 'owner') return next();
+  if (req.session && req.session.userId && req.session.role === 'owner') return next();
+  if (!req.session || !req.session.userId) return res.status(401).json({ error: 'Belum login' });
   return res.status(403).json({ error: 'Hanya owner yang boleh mengakses' });
 }
 

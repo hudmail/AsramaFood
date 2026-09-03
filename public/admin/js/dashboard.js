@@ -32,6 +32,35 @@ function escapeHtml(str) {
   return div.innerHTML;
 }
 
+// ---------------------------------------------------------------------------
+// Toast notification — pengganti alert() yang tidak mengganggu
+// ---------------------------------------------------------------------------
+let _adminToastTimer;
+function showAdminToast(msg, type = 'info') {
+  let toast = document.getElementById('admin-toast');
+  if (!toast) {
+    toast = document.createElement('div');
+    toast.id = 'admin-toast';
+    toast.style.cssText = [
+      'position:fixed', 'bottom:1.5rem', 'right:1.5rem', 'z-index:9999',
+      'padding:0.85rem 1.25rem', 'border-radius:var(--radius-md,10px)',
+      'font-size:0.92rem', 'font-weight:600', 'display:flex',
+      'align-items:center', 'gap:0.6rem', 'max-width:380px',
+      'box-shadow:0 8px 30px rgba(0,0,0,0.18)',
+      'transform:translateY(120%)', 'transition:transform 0.28s cubic-bezier(.4,0,.2,1)',
+      'color:#fff',
+    ].join(';');
+    document.body.appendChild(toast);
+  }
+  const colors = { info: '#6366f1', success: '#16a34a', error: '#dc2626', warning: '#d97706' };
+  const icons  = { info: 'fa-circle-info', success: 'fa-circle-check', error: 'fa-circle-xmark', warning: 'fa-triangle-exclamation' };
+  toast.style.background = colors[type] || colors.info;
+  toast.innerHTML = `<i class="fa-solid ${icons[type] || icons.info}"></i> ${escapeHtml(msg)}`;
+  toast.style.transform = 'translateY(0)';
+  clearTimeout(_adminToastTimer);
+  _adminToastTimer = setTimeout(() => { toast.style.transform = 'translateY(120%)'; }, 3500);
+}
+
 async function requireLogin() {
   const res = await fetch('/api/admin/me');
   if (!res.ok) {
@@ -216,13 +245,19 @@ async function updatePaymentStatus(orderId, paymentStatus) {
     await loadOrders();
     await loadDashboard();
     closeOrderModal();
+    showAdminToast('Status pembayaran diperbarui', 'success');
   } else {
     const data = await res.json().catch(() => ({}));
-    alert(data.error || 'Gagal memperbarui status pembayaran');
+    showAdminToast(data.error || 'Gagal memperbarui status pembayaran', 'error');
   }
 }
 
 async function updateStatus(orderId, status) {
+  // Konfirmasi ekstra sebelum batalkan pesanan — tombol ini destruktif dan mudah dipencet tidak sengaja
+  if (status === 'dibatalkan') {
+    const ok = confirm('Yakin ingin membatalkan pesanan ini?\n\nStok menu akan dikembalikan secara otomatis.');
+    if (!ok) return;
+  }
   const res = await fetch(`/api/admin/orders/${orderId}/status`, {
     method: 'PATCH',
     headers: { 'Content-Type': 'application/json' },
@@ -232,9 +267,10 @@ async function updateStatus(orderId, status) {
     await loadOrders();
     await loadDashboard();
     closeOrderModal();
+    showAdminToast(`Status diperbarui: ${STATUS_LABEL[status] || status}`, 'success');
   } else {
     const data = await res.json().catch(() => ({}));
-    alert(data.error || 'Gagal memperbarui status pesanan');
+    showAdminToast(data.error || 'Gagal memperbarui status pesanan', 'error');
   }
 }
 

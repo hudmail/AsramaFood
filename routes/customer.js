@@ -1,44 +1,7 @@
 const express = require('express');
 const rateLimit = require('express-rate-limit');
-const multer = require('multer');
-const path = require('path');
-const fs = require('fs');
 const { db, getSetting, setSetting, isStoreOpen, appEvents } = require('../db');
-
-const storage = multer.diskStorage({
-  destination: function (req, file, cb) {
-    const dir = path.join(__dirname, '../public/uploads');
-    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-    cb(null, dir);
-  },
-  filename: function (req, file, cb) {
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-    cb(null, file.fieldname + '-' + uniqueSuffix + path.extname(file.originalname));
-  }
-});
-// Batasi ukuran (5MB) dan hanya terima gambar - lihat catatan yang sama di routes/admin.js
-const upload = multer({
-  storage: storage,
-  limits: { fileSize: 5 * 1024 * 1024 },
-  fileFilter: (req, file, cb) => {
-    if (!file.mimetype.startsWith('image/')) {
-      return cb(new Error('File yang diupload harus berupa gambar'));
-    }
-    cb(null, true);
-  },
-});
-function uploadOne(fieldName) {
-  const mw = upload.single(fieldName);
-  return (req, res, next) => {
-    mw(req, res, (err) => {
-      if (!err) return next();
-      if (err.code === 'LIMIT_FILE_SIZE') {
-        return res.status(400).json({ error: 'Ukuran file maksimal 5MB' });
-      }
-      return res.status(400).json({ error: err.message || 'Gagal mengunggah file' });
-    });
-  };
-}
+const { uploadPrivateOne } = require('../middleware/upload');
 
 const router = express.Router();
 
@@ -148,8 +111,32 @@ router.get('/menu/terlaris', (req, res) => {
 router.post('/orders', orderRateLimit, (req, res) => {
   const { customer_name, room, whatsapp, note, method, payment_method = 'qris', items } = req.body || {};
 
+  // --- Validasi keberadaan field wajib ---
   if (!customer_name || !room || !method || !whatsapp || !Array.isArray(items) || items.length === 0) {
     return res.status(400).json({ error: 'Data pesanan tidak lengkap (Nama, WhatsApp, dll wajib diisi)' });
+  }
+
+  // --- Validasi panjang dan format input ---
+  // Tanpa validasi ini, input tidak terbatas bisa menyebabkan database membengkak
+  // atau karakter berbahaya lolos masuk ke laporan/tampilan admin.
+  if (typeof customer_name !== 'string' || customer_name.trim().length === 0 || customer_name.length > 100) {
+    return res.status(400).json({ error: 'Nama pemesan tidak valid (maksimal 100 karakter)' });
+  }
+  if (typeof room !== 'string' || room.trim().length === 0 || room.length > 150) {
+    return res.status(400).json({ error: 'Lokasi kamar tidak valid (maksimal 150 karakter)' });
+  }
+  if (typeof whatsapp !== 'string' || whatsapp.length > 20) {
+    return res.status(400).json({ error: 'Nomor WhatsApp tidak valid (maksimal 20 karakter)' });
+  }
+  // Nomor WA: hanya angka, spasi, +, dan - yang diizinkan
+  if (!/^[\d\s\+\-]{8,20}$/.test(whatsapp.trim())) {
+    return res.status(400).json({ error: 'Format nomor WhatsApp tidak valid' });
+  }
+  if (note && note.length > 500) {
+    return res.status(400).json({ error: 'Catatan terlalu panjang (maksimal 500 karakter)' });
+  }
+  if (items.length > 20) {
+    return res.status(400).json({ error: 'Terlalu banyak item dalam satu pesanan (maks 20)' });
   }
   if (!['antar', 'ambil'].includes(method)) {
     return res.status(400).json({ error: 'Metode pengambilan tidak valid' });
@@ -301,7 +288,7 @@ router.get('/orders/:code', (req, res) => {
   res.json({ ...order, items });
 });
 
-router.post('/orders/:code/bukti-bayar', uploadOne('proof_image'), (req, res) => {
+router.post('/orders/:code/bukti-bayar', uploadPrivateOne('proof_image'), (req, res) => {
   const { code } = req.params;
   const order = db.prepare('SELECT * FROM orders WHERE order_code = ?').get(code);
   if (!order) return res.status(404).json({ error: 'Pesanan tidak ditemukan' });
@@ -312,14 +299,24 @@ router.post('/orders/:code/bukti-bayar', uploadOne('proof_image'), (req, res) =>
     return res.status(400).json({ error: 'Pesanan ini sudah dikonfirmasi terbayar' });
   }
 
-  const proof_image = req.file ? `/uploads/${req.file.filename}` : req.body.proof_image;
-  if (!proof_image) return res.status(400).json({ error: 'Bukti transfer wajib disertakan' });
-
-  if (req.file && order.payment_proof && order.payment_proof.startsWith('/uploads/') && order.payment_proof !== proof_image) {
-    fs.unlink(path.join(__dirname, '../public', order.payment_proof), () => {});
+  // File bukti bayar sekarang disimpan di data/uploads/proofs/ (lokasi privat).
+  // Path yang disimpan ke DB menggunakan prefix '/api/admin/proof/' sehingga
+  // akses ke file selalu melewati endpoint yang memerlukan auth admin.
+  let proof_path;
+  if (req.file) {
+    proof_path = `/api/admin/proof/${req.file.filename}`;
+  } else {
+    return res.status(400).json({ error: 'Bukti transfer wajib disertakan' });
   }
 
-  db.prepare(`UPDATE orders SET payment_proof = ?, payment_status = 'menunggu_konfirmasi', updated_at = datetime('now') WHERE id = ?`).run(proof_image, order.id);
+  // Hapus file bukti lama dari disk jika ada (hanya file privat dengan prefix baru)
+  if (order.payment_proof && order.payment_proof.startsWith('/api/admin/proof/')) {
+    const oldFilename = order.payment_proof.replace('/api/admin/proof/', '');
+    const oldPath = require('path').join(__dirname, '../data/uploads/proofs', oldFilename);
+    require('fs').unlink(oldPath, () => {});
+  }
+
+  db.prepare(`UPDATE orders SET payment_proof = ?, payment_status = 'menunggu_konfirmasi', updated_at = datetime('now') WHERE id = ?`).run(proof_path, order.id);
 
   appEvents.emit('payment_uploaded', {
     order_code: order.order_code,

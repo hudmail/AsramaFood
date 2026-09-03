@@ -297,4 +297,273 @@ function tryReload(attempt) {
   if (!ok) return;
   await loadSettings();
   await initUpdatePanel();
+  await initPasswordPanel();
 })();
+
+// ---------------------------------------------------------------------------
+// --- Ubah Password & Kelola Akun ------------------------------------------
+// ---------------------------------------------------------------------------
+
+let _resetTargetId = null;
+
+async function initPasswordPanel() {
+  // Tampilkan username yang sedang login di panel Ubah Password
+  try {
+    const res = await fetch('/api/admin/me');
+    if (!res.ok) return;
+    const me = await res.json();
+    const label = document.getElementById('currentUsernameLabel');
+    if (label) {
+      label.textContent = me.username + (me.role === 'owner' ? ' (Owner)' : ' (Kasir)');
+    }
+
+    // Panel Kelola Akun hanya untuk owner
+    if (me.role === 'owner') {
+      const panel = document.getElementById('manageAccountsPanel');
+      if (panel) panel.style.display = 'block';
+      await loadAdminUsers();
+    }
+  } catch {
+    // Gagal load info akun — tidak fatal
+  }
+
+  // Strength indicator untuk password baru
+  const newPwInput = document.getElementById('newPassword');
+  if (newPwInput) {
+    newPwInput.addEventListener('input', () => {
+      updatePasswordStrength(newPwInput.value);
+    });
+  }
+
+  // Validasi konfirmasi password secara live
+  const confirmInput = document.getElementById('confirmPassword');
+  if (confirmInput && newPwInput) {
+    const checkMatch = () => {
+      const msg = document.getElementById('confirmPasswordMsg');
+      if (!msg || !confirmInput.value) { if (msg) msg.textContent = ''; return; }
+      const match = confirmInput.value === newPwInput.value;
+      msg.textContent = match ? '✓ Password cocok' : '✗ Password tidak cocok';
+      msg.style.color = match ? 'var(--success, #16a34a)' : 'var(--danger, #dc2626)';
+    };
+    confirmInput.addEventListener('input', checkMatch);
+    newPwInput.addEventListener('input', checkMatch);
+  }
+}
+
+function updatePasswordStrength(password) {
+  const bar = document.getElementById('pwStrengthBar');
+  const fill = document.getElementById('pwStrengthFill');
+  const label = document.getElementById('pwStrengthLabel');
+  if (!bar || !fill || !label) return;
+
+  if (!password) {
+    bar.style.display = 'none';
+    label.style.display = 'none';
+    return;
+  }
+
+  bar.style.display = 'block';
+  label.style.display = 'block';
+
+  let score = 0;
+  if (password.length >= 8) score++;
+  if (password.length >= 12) score++;
+  if (/[A-Z]/.test(password)) score++;
+  if (/[0-9]/.test(password)) score++;
+  if (/[^A-Za-z0-9]/.test(password)) score++;
+
+  const levels = [
+    { pct: '20%', color: '#ef4444', text: 'Lemah' },
+    { pct: '40%', color: '#f97316', text: 'Kurang kuat' },
+    { pct: '60%', color: '#eab308', text: 'Cukup' },
+    { pct: '80%', color: '#22c55e', text: 'Kuat' },
+    { pct: '100%', color: '#16a34a', text: '💪 Sangat kuat' },
+  ];
+  const lvl = levels[Math.min(score - 1, 4)] || levels[0];
+  fill.style.width = lvl.pct;
+  fill.style.background = lvl.color;
+  label.textContent = lvl.text;
+  label.style.color = lvl.color;
+}
+
+// Tampilkan/sembunyikan teks password
+function togglePasswordVisibility(inputId, btn) {
+  const input = document.getElementById(inputId);
+  if (!input) return;
+  const icon = btn.querySelector('i');
+  if (input.type === 'password') {
+    input.type = 'text';
+    if (icon) { icon.classList.remove('fa-eye'); icon.classList.add('fa-eye-slash'); }
+    btn.title = 'Sembunyikan password';
+  } else {
+    input.type = 'password';
+    if (icon) { icon.classList.remove('fa-eye-slash'); icon.classList.add('fa-eye'); }
+    btn.title = 'Tampilkan password';
+  }
+}
+
+async function changePassword(event) {
+  event.preventDefault();
+  const currentPw = document.getElementById('currentPassword').value;
+  const newPw = document.getElementById('newPassword').value;
+  const confirmPw = document.getElementById('confirmPassword').value;
+
+  if (newPw !== confirmPw) {
+    showSettingsToast('Konfirmasi password tidak cocok', 'error');
+    return;
+  }
+  if (newPw.length < 8) {
+    showSettingsToast('Password baru minimal 8 karakter', 'error');
+    return;
+  }
+
+  const btn = document.getElementById('changePasswordBtn');
+  const originalHtml = btn.innerHTML;
+  btn.disabled = true;
+  btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Menyimpan...';
+
+  try {
+    const res = await fetch('/api/admin/change-password', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ current_password: currentPw, new_password: newPw }),
+    });
+    const data = await res.json();
+    if (res.ok) {
+      document.getElementById('changePasswordForm').reset();
+      // Reset strength indicator
+      const bar = document.getElementById('pwStrengthBar');
+      const label = document.getElementById('pwStrengthLabel');
+      const confirm = document.getElementById('confirmPasswordMsg');
+      if (bar) bar.style.display = 'none';
+      if (label) label.style.display = 'none';
+      if (confirm) confirm.textContent = '';
+      showSettingsToast('Password berhasil diubah! Gunakan password baru untuk login berikutnya.', 'success');
+    } else {
+      showSettingsToast(data.error || 'Gagal mengubah password', 'error');
+    }
+  } catch {
+    showSettingsToast('Gagal menghubungi server', 'error');
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = originalHtml;
+  }
+}
+
+async function loadAdminUsers() {
+  try {
+    const res = await fetch('/api/admin/admin-users');
+    if (!res.ok) return;
+    const users = await res.json();
+    const list = document.getElementById('adminUserList');
+    if (!list) return;
+
+    list.innerHTML = users.map(u => `
+      <div style="display:flex; align-items:center; justify-content:space-between; gap:0.75rem;
+        padding:0.85rem 1rem; background:var(--bg-body); border-radius:var(--radius-sm);
+        border:1px solid var(--border-color);">
+        <div style="display:flex; align-items:center; gap:0.6rem;">
+          <div style="width:30px;height:30px;border-radius:50%;background:var(--primary-light);
+            display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+            <i class="fa-solid fa-user" style="color:var(--primary);font-size:0.75rem;"></i>
+          </div>
+          <div>
+            <div style="font-weight:700;font-size:0.92rem;">${escapeHtml(u.username)}</div>
+            <div style="font-size:0.75rem;color:var(--text-muted);">${u.role === 'owner' ? 'Owner' : 'Kasir'}</div>
+          </div>
+        </div>
+        ${u.role !== 'owner' ? `
+          <button class="btn secondary" onclick="showResetPasswordForm(${u.id}, '${escapeHtml(u.username)}')"
+            style="font-size:0.78rem; padding:0.4rem 0.75rem; width:auto;">
+            <i class="fa-solid fa-key"></i> Reset
+          </button>
+        ` : `<span style="font-size:0.75rem;color:var(--text-muted);padding:0.4rem 0.75rem;">Akun Anda</span>`}
+      </div>
+    `).join('');
+  } catch {
+    // Tidak fatal
+  }
+}
+
+function escapeHtml(str) {
+  const d = document.createElement('div');
+  d.textContent = String(str);
+  return d.innerHTML;
+}
+
+function showResetPasswordForm(userId, username) {
+  _resetTargetId = userId;
+  const nameEl = document.getElementById('resetTargetName');
+  const panel = document.getElementById('resetPasswordPanel');
+  const input = document.getElementById('resetNewPassword');
+  if (nameEl) nameEl.textContent = username;
+  if (panel) panel.style.display = 'block';
+  if (input) { input.value = ''; input.focus(); }
+}
+
+function cancelResetPassword() {
+  _resetTargetId = null;
+  const panel = document.getElementById('resetPasswordPanel');
+  if (panel) panel.style.display = 'none';
+}
+
+async function doResetPassword() {
+  if (!_resetTargetId) return;
+  const newPw = document.getElementById('resetNewPassword').value.trim();
+  if (!newPw) { showSettingsToast('Isi password baru terlebih dahulu', 'error'); return; }
+  if (newPw.length < 8) { showSettingsToast('Password minimal 8 karakter', 'error'); return; }
+
+  const btn = document.getElementById('doResetPasswordBtn');
+  const originalHtml = btn.innerHTML;
+  btn.disabled = true;
+  btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Mereset...';
+
+  try {
+    const res = await fetch(`/api/admin/admin-users/${_resetTargetId}/reset-password`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ new_password: newPw }),
+    });
+    const data = await res.json();
+    if (res.ok) {
+      cancelResetPassword();
+      showSettingsToast(`Password akun berhasil direset`, 'success');
+    } else {
+      showSettingsToast(data.error || 'Gagal mereset password', 'error');
+    }
+  } catch {
+    showSettingsToast('Gagal menghubungi server', 'error');
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = originalHtml;
+  }
+}
+
+// ---------------------------------------------------------------------------
+// --- Toast notification untuk halaman settings ----------------------------
+// ---------------------------------------------------------------------------
+let _settingsToastTimer;
+function showSettingsToast(msg, type = 'info') {
+  let toast = document.getElementById('settings-toast');
+  if (!toast) {
+    toast = document.createElement('div');
+    toast.id = 'settings-toast';
+    toast.style.cssText = [
+      'position:fixed', 'bottom:1.5rem', 'right:1.5rem', 'z-index:9999',
+      'padding:0.85rem 1.25rem', 'border-radius:var(--radius-md,10px)',
+      'font-size:0.92rem', 'font-weight:600', 'display:flex',
+      'align-items:center', 'gap:0.6rem', 'max-width:400px',
+      'box-shadow:0 8px 30px rgba(0,0,0,0.18)',
+      'transform:translateY(120%)', 'transition:transform 0.28s cubic-bezier(.4,0,.2,1)',
+      'color:#fff',
+    ].join(';');
+    document.body.appendChild(toast);
+  }
+  const colors = { info: '#6366f1', success: '#16a34a', error: '#dc2626', warning: '#d97706' };
+  const icons  = { info: 'fa-circle-info', success: 'fa-circle-check', error: 'fa-circle-xmark', warning: 'fa-triangle-exclamation' };
+  toast.style.background = colors[type] || colors.info;
+  toast.innerHTML = `<i class="fa-solid ${icons[type] || icons.info}"></i> ${escapeHtml(msg)}`;
+  toast.style.transform = 'translateY(0)';
+  clearTimeout(_settingsToastTimer);
+  _settingsToastTimer = setTimeout(() => { toast.style.transform = 'translateY(120%)'; }, 4000);
+}

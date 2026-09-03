@@ -11,6 +11,9 @@ if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
 
 const db = new DatabaseSync(path.join(DATA_DIR, 'asrama-food.sqlite'));
 db.exec('PRAGMA journal_mode = WAL;');
+// Checkpoint WAL saat startup agar file .sqlite-wal tidak terus membesar.
+// Mode TRUNCATE: tulis semua frame WAL ke database utama lalu potong file WAL ke 0.
+db.exec('PRAGMA wal_checkpoint(TRUNCATE);');
 // foreign key constraints sudah aktif secara default di node:sqlite
 
 // Helper transaksi sederhana (node:sqlite belum punya db.transaction() bawaan seperti better-sqlite3)
@@ -58,6 +61,9 @@ CREATE TABLE IF NOT EXISTS menu_items (
   is_available INTEGER DEFAULT 1,
   image_emoji TEXT DEFAULT '🍽️',
   image TEXT,
+  discount_price INTEGER,              -- harga setelah diskon (null = tidak diskon)
+  is_discount INTEGER NOT NULL DEFAULT 0, -- 1 = menu sedang diskon
+  sold_count INTEGER NOT NULL DEFAULT 0,  -- jumlah terjual kumulatif
   allow_egg INTEGER DEFAULT 0, -- 1 = pelanggan bisa pilih +Telur
   allow_ice INTEGER DEFAULT 0, -- 1 = pelanggan bisa pilih Es/Dingin (khusus minuman)
   created_at TEXT DEFAULT (datetime('now'))

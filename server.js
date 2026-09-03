@@ -109,6 +109,17 @@ app.use((err, req, res, next) => {
   res.status(500).json({ error: 'Terjadi kesalahan pada server' });
 });
 
-app.listen(PORT, () => {
+const server = app.listen(PORT, () => {
   console.log(`AsramaFood jalan di http://localhost:${PORT}`);
+});
+
+server.on('error', (err) => {
+  if (err.code === 'EADDRINUSE') {
+    console.error(`\n[ERROR] Port ${PORT} sudah digunakan oleh proses lain.`);
+    console.error(`        Hentikan proses tersebut, atau atur PORT yang berbeda di file .env`);
+    console.error(`        Contoh: PORT=3001 di file .env\n`);
+  } else {
+    console.error('[ERROR] Server gagal start:', err.message);
+  }
+  process.exit(1);
 });
