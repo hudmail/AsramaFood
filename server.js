@@ -71,6 +71,31 @@ app.use(
   })
 );
 
+// Proteksi halaman HTML admin di level server, SEBELUM static middleware.
+// Tanpa ini, express.static akan mengirim admin/index.html dkk ke siapa saja
+// yang request, dan pengecekan login cuma berjalan belakangan lewat JS di
+// browser (fetch ke /api/admin/me) - celah ini bisa dieksploitasi dengan
+// tools seperti Burp Suite untuk intercept & menahan request sebelum JS
+// sempat redirect, sehingga halaman admin (HTML/JS-nya, bukan datanya)
+// tetap bisa dilihat walau belum login.
+const ADMIN_PROTECTED_PAGES = new Set([
+  '/admin',
+  '/admin/',
+  '/admin/index.html',
+  '/admin/menu.html',
+  '/admin/reports.html',
+  '/admin/settings.html',
+]);
+
+app.use((req, res, next) => {
+  if (ADMIN_PROTECTED_PAGES.has(req.path)) {
+    if (!(req.session && req.session.userId)) {
+      return res.redirect('/admin/login.html');
+    }
+  }
+  next();
+});
+
 // Cache static assets for 1 day
 app.use(express.static(path.join(__dirname, 'public'), { maxAge: '1d' }));
 
