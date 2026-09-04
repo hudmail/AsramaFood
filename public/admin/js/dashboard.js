@@ -159,8 +159,8 @@ async function viewOrder(id) {
   const cached = (window.__ordersCache || []).find((o) => o.id === id);
   if (!cached) return;
 
-  // Daftar pesanan (GET /orders) tidak menyertakan rincian item, jadi ambil
-  // detail lengkap (termasuk items) dari endpoint per-pesanan.
+  // Daftar pesanan (GET /orders) tidak menyertakan rincian item maupun payment_proof,
+  // jadi ambil detail lengkap dari endpoint per-pesanan.
   let o = cached;
   try {
     const res = await fetch(`/api/admin/orders/${id}`);
@@ -168,6 +168,11 @@ async function viewOrder(id) {
   } catch (e) {
     // kalau gagal, tetap tampilkan modal pakai data cache (tanpa rincian item)
   }
+
+  // Simpan payment_proof dari detail ini agar viewProof() bisa menggunakannya.
+  // (List endpoint tidak mengembalikan kolom payment_proof untuk efisiensi)
+  window.__currentOrderProof = o.payment_proof || null;
+  window.__currentOrderId = o.id;
 
   document.getElementById('detail-order-id').textContent = o.order_code;
 
@@ -203,14 +208,14 @@ async function viewOrder(id) {
     paymentActions = `<button class="btn" style="width:auto; font-size:0.85rem; background:var(--primary-light); color:var(--text-title)" onclick="updatePaymentStatus(${o.id}, 'dibayar')"><i aria-hidden="true" class="fa-solid fa-money-bill"></i> Tandai COD Dibayar</button>`;
   } else if (o.payment_status === 'menunggu_konfirmasi') {
     paymentActions = `
-      ${o.payment_proof ? `<button class="btn secondary" style="width:auto; font-size:0.85rem;" onclick="viewProof(${o.id})"><i aria-hidden="true" class="fa-solid fa-receipt"></i> Lihat Bukti</button>` : ''}
+      ${o.payment_proof ? `<button class="btn secondary" style="width:auto; font-size:0.85rem;" onclick="viewProof()"><i aria-hidden="true" class="fa-solid fa-receipt"></i> Lihat Bukti</button>` : ''}
       <button class="btn" style="width:auto; font-size:0.85rem; background:var(--success)" onclick="updatePaymentStatus(${o.id}, 'dibayar')"><i aria-hidden="true" class="fa-solid fa-check"></i> Konfirmasi Bayar</button>
       <button class="btn danger" style="width:auto; font-size:0.85rem;" onclick="updatePaymentStatus(${o.id}, 'ditolak')"><i aria-hidden="true" class="fa-solid fa-xmark"></i> Tolak Bukti</button>
     `;
   } else if (o.payment_status === 'menunggu_pembayaran') {
     paymentActions = `<button class="btn" style="width:auto; font-size:0.85rem; background:var(--success)" onclick="updatePaymentStatus(${o.id}, 'dibayar')"><i aria-hidden="true" class="fa-solid fa-check"></i> Tandai Sudah Bayar</button>`;
   } else if (o.payment_status === 'dibayar' && o.payment_proof) {
-    paymentActions = `<button class="btn secondary" style="width:auto; font-size:0.85rem;" onclick="viewProof(${o.id})"><i aria-hidden="true" class="fa-solid fa-receipt"></i> Lihat Bukti</button>`;
+    paymentActions = `<button class="btn secondary" style="width:auto; font-size:0.85rem;" onclick="viewProof()"><i aria-hidden="true" class="fa-solid fa-receipt"></i> Lihat Bukti</button>`;
   }
 
   const actionBtns = document.getElementById('order-action-buttons');
@@ -223,12 +228,22 @@ async function viewOrder(id) {
   document.getElementById('order-modal').classList.add('open');
 }
 
-window.closeOrderModal = () => document.getElementById('order-modal').classList.remove('open');
+window.closeOrderModal = () => {
+  document.getElementById('order-modal').classList.remove('open');
+  window.__currentOrderProof = null;
+  window.__currentOrderId = null;
+};
 
-function viewProof(orderId) {
-  const order = (window.__ordersCache || []).find((o) => o.id === orderId);
-  if (!order || !order.payment_proof) return;
-  document.getElementById('proofViewImg').src = order.payment_proof;
+// viewProof() menggunakan window.__currentOrderProof yang diisi oleh viewOrder().
+// TIDAK menggunakan __ordersCache karena list endpoint sengaja tidak
+// menyertakan kolom payment_proof (data besar, tidak diperlukan di daftar).
+function viewProof() {
+  const proof = window.__currentOrderProof;
+  if (!proof) {
+    showAdminToast('Bukti pembayaran tidak tersedia', 'warning');
+    return;
+  }
+  document.getElementById('proofViewImg').src = proof;
   document.getElementById('proofViewOverlay').classList.add('open');
 }
 function closeProofView() {
